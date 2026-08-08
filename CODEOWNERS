@@ -1,0 +1,25 @@
+# SWAIS VidhyaBharathi — module ownership. A PR touching a path auto-requests
+# review from its owner. Replace the @handles with real GitHub usernames.
+
+# Shared / core — senior review required (auth, tenancy, DB affect everyone)
+/backend/app/core/           @bhuvan-swais @lead
+/backend/app/db/             @bhuvan-swais @lead
+/docs/                       @bhuvan-swais @lead
+/ecosystem.config.js         @bhuvan-swais @lead
+/.env.example                @bhuvan-swais @lead
+
+# Per-module backend + frontend
+/backend/app/api/v1/vidyarthi.py    @student-dev
+/frontend/app/vidyarthi/            @student-dev
+
+/backend/app/api/v1/acharya.py      @faculty-dev
+/frontend/app/acharya/              @faculty-dev
+
+/backend/app/api/v1/palaka.py       @parent-dev
+/frontend/app/palaka/               @parent-dev
+
+/backend/app/api/v1/pradhana.py     @principal-dev
+/frontend/app/pradhana/             @principal-dev
+
+/backend/app/api/v1/nyasa.py        @bhuvan-swais @lead
+/frontend/app/nyasa/                @bhuvan-swais @lead
