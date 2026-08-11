@@ -1,0 +1,106 @@
+/* SWAIS VidhyaBharathi — design tokens.
+   Palette lifted from the approved SWAIS theme (saffron / ivory).
+   Use the CSS variables everywhere — never hardcode colors in components. */
+
+:root {
+  /* brand */
+  --saffron: #F28C28;
+  --saffron-deep: #C0562A;
+  --saffron-soft: #FCE7D2;
+  --ivory: #FFF9F0;        /* app background */
+  --ink: #2B1A0F;          /* primary text */
+  --muted: #B08A5C;        /* secondary text */
+  --line: #F0E3D2;         /* borders */
+
+  /* surfaces */
+  --surface: #ffffff;
+  --surface-tint: #FFFDFA;
+
+  /* button gradient */
+  --btn-grad: linear-gradient(135deg, #F49B45, #E0651A);
+
+  /* fonts */
+  --serif: "Fraunces", Georgia, serif;
+  --sans: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --dev: "Noto Sans Devanagari", "Nirmala UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--ivory);
+}
+
+.dev { font-family: var(--dev); }
+
+h1, h2, h3 { font-family: var(--serif); color: var(--ink); }
+
+/* reusable card + button so portals share the look */
+.vb-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 28px;
+  box-shadow: 0 24px 60px rgba(192, 86, 42, .12);
+}
+
+.vb-btn {
+  border: 0;
+  border-radius: 15px;
+  color: #fff;
+  background: var(--btn-grad);
+  font-weight: 800;
+  font-size: 16px;
+  padding: 16px 22px;
+  cursor: pointer;
+}
+
+.vb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--saffron-soft);
+  color: var(--saffron-deep);
+  font-weight: 700;
+  letter-spacing: 1px;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+/* ---- Vidyarthi sidebar shell ---- */
+.vb-shell { min-height: 100vh; }
+.vb-side { position: fixed; top: 0; left: 0; bottom: 0; width: 256px; z-index: 60; background: #FFF3E6; border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 20px 14px; overflow-y: auto; }
+.vb-brand { padding: 4px 10px 14px; }
+.vb-navwrap { flex: 1; }
+.vb-group { font-size: 10.5px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin: 16px 10px 6px; }
+.vb-nav { display: flex; align-items: center; gap: 11px; width: 100%; padding: 9px 12px; border-radius: 11px; margin: 2px 0; color: var(--ink); text-decoration: none; font-size: 14px; font-weight: 500; background: transparent; border: none; cursor: pointer; text-align: left; font-family: inherit; }
+.vb-nav:hover { background: var(--saffron-soft); }
+.vb-nav.active { background: var(--saffron); color: #fff; }
+.vb-nav.active .vb-ai { background: rgba(255,255,255,.25); color: #fff; }
+.vb-nav-t { flex: 1; white-space: nowrap; }
+.vb-ai { font-size: 9.5px; font-weight: 700; letter-spacing: .5px; background: var(--saffron-soft); color: var(--saffron-deep); padding: 2px 6px; border-radius: 6px; }
+.vb-logout { color: var(--saffron-deep); }
+.vb-bottom { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; }
+.vb-lang { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border-radius: 11px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
+.vb-lang:hover { border-color: var(--saffron); }
+.vb-langpop { position: absolute; bottom: calc(100% + 6px); left: 0; right: 0; z-index: 60; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(192,86,42,.12); padding: 6px; }
+.vb-langopt { display: block; width: 100%; text-align: left; padding: 8px 12px; border-radius: 8px; border: none; background: transparent; cursor: pointer; font-size: 13px; color: var(--ink); font-family: inherit; }
+.vb-langopt:hover { background: var(--saffron-soft); }
+.vb-langopt[data-on=true] { color: var(--saffron-deep); font-weight: 600; }
+.vb-user { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 8px 6px; }
+.vb-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--saffron-soft); color: var(--saffron-deep); display: flex; align-items: center; justify-content: center; font-weight: 700; flex: none; }
+.vb-content { margin-left: 256px; padding: 32px 40px; max-width: 1080px; }
+.vb-topbar { display: none; }
+.vb-scrim { display: none; }
+@media (max-width: 900px) {
+  .vb-topbar { display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 40; background: #FFF9F0; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .vb-hamb { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 7px; display: flex; cursor: pointer; color: var(--ink); }
+  .vb-side { transform: translateX(-100%); transition: transform .22s ease; box-shadow: 0 0 40px rgba(0,0,0,.15); }
+  .vb-side.open { transform: none; }
+  .vb-scrim { display: block; position: fixed; inset: 0; background: rgba(43,26,15,.35); z-index: 55; }
+  .vb-content { margin-left: 0; padding: 20px 18px; }
+}

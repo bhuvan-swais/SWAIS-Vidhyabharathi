@@ -23,3 +23,10 @@ dist/
 .idea/
 .vscode/
 *.log
+
+# Expo / React Native
+.expo/
+*.jks
+*.p8
+*.p12
+*.mobileprovision

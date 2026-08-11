@@ -14,11 +14,11 @@ cd ..
 pm2 restart vb-backend --update-env
 
 echo "==> Frontend: build + restart"
-cd frontend
+cd web
 npm ci
 npm run build            # REQUIRED: NEXT_PUBLIC_* is baked in at build time
 cd ..
-pm2 restart vb-frontend --update-env
+pm2 restart vb-web --update-env
 
 pm2 save
 echo "==> Done:"

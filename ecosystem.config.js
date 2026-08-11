@@ -1,5 +1,5 @@
 // SWAIS VidhyaBharathi — pm2 process definitions.
-// Two apps: one backend (FastAPI), one frontend (Next.js). Same EC2.
+// Two apps: one backend (FastAPI), one web (Next.js). Same EC2.
 module.exports = {
   apps: [
     {
@@ -11,8 +11,8 @@ module.exports = {
       env: { PYTHONUNBUFFERED: "1" },
     },
     {
-      name: "vb-frontend",
-      cwd: "./frontend",
+      name: "vb-web",
+      cwd: "./web",
       script: "npm",
       args: "start", // = next start; requires a prior `npm run build`
       env: { PORT: "3000", NODE_ENV: "production" },

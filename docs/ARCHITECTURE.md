@@ -10,10 +10,10 @@ Browser ──► Frontend (Next.js :3000) ──► Backend (FastAPI :8000) ─
                                               └──► Central DB — Nyasa analytics + AI billing
 ```
 
-- **One backend, one frontend.** Login and all role portals live in one app on
+- **One backend, one web.** Login and all role portals live in one app on
   one origin — so they share one session. No cross-app SSO handoff, no per-module
   ports. (This is deliberately unlike the older per-module deployments.)
-- **Role routing:** after login the token carries the role; the frontend routes
+- **Role routing:** after login the token carries the role; the web routes
   to that role's portal, and every backend endpoint enforces it with
   `require_role(...)`. Frontend routing = UX; backend `require_role` = security.
 

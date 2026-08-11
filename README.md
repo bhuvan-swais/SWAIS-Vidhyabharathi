@@ -1,21 +1,29 @@
 # SWAIS VidhyaBharathi
 
 AI-enabled holistic learning platform for multiple schools. Single monorepo:
-one backend (FastAPI) + one frontend (Next.js), multi-tenant.
+one backend (FastAPI) + one web (Next.js), multi-tenant.
 
-## Structure
+## Structure (monorepo: web + mobile share one backend)
 ```
 backend/          FastAPI API — all role modules under /api/v1  (port 8000)
   app/
     core/         config, security (auth), tenancy, scoping
     db/           SQLAlchemy base + models (every tenant table has school_id)
     api/v1/       one router per module (BVK terminology)
-frontend/         Next.js app — role portals              (port 3000)
+web/              Next.js — web + desktop browser            (port 3000)
   app/            pravesha (login), vidyarthi, acharya, palaka, pradhana, nyasa
-docs/             ARCHITECTURE, TENANCY, DEPLOYMENT, ONBOARDING
+mobile/           React Native + Expo — iOS + Android
+  App.js, src/    navigation, persistent login, role screens
+shared/           API client, auth, TS types — imported by web AND mobile
+docs/             ARCHITECTURE, TENANCY, DATABASE, DEPLOYMENT
 scripts/          setup.sh, deploy.sh
-ecosystem.config.js   pm2 (backend + frontend)
+ecosystem.config.js   pm2 (backend + web)
+package.json      npm workspaces: web, mobile, shared
 ```
+
+- **web** and **mobile** are separate apps but **share** `shared/` (never copy logic between them).
+- **backend** serves all clients (web + mobile) via the same REST API.
+- Mobile keeps users logged in (token in device secure store) — no re-login, per BVK's ask.
 
 ## Modules (VidhyaBharathi terminology)
 | Module | Role / area |
@@ -42,8 +50,8 @@ backend stores results and meters tokens per school for billing.
 
 ## Local dev
 ```bash
-bash scripts/setup.sh        # sets up backend venv + frontend deps
-# fill backend/.env and frontend/.env.local from .env.example
+bash scripts/setup.sh        # sets up backend venv + web deps
+# fill backend/.env and web/.env.local from .env.example
 ```
 
 ## Deploy

@@ -1,20 +1,20 @@
 # Deployment — SWAIS VidhyaBharathi
 
-Same EC2. Two pm2 apps (backend + frontend) behind one nginx.
+Same EC2. Two pm2 apps (backend + web) behind one nginx.
 
 ```
 nginx (HTTPS)
   ├── /api/  → localhost:8000   vb-backend  (FastAPI/uvicorn)
-  └── /      → localhost:3000   vb-frontend (Next.js)
+  └── /      → localhost:3000   vb-web (Next.js)
 ```
 
 ## First-time setup
 ```bash
 git clone <repo> vidhyabharathi && cd vidhyabharathi
-bash scripts/setup.sh                 # backend venv + frontend deps
+bash scripts/setup.sh                 # backend venv + web deps
 cp .env.example backend/.env          # fill backend values
-cp .env.example frontend/.env.local   # fill NEXT_PUBLIC_* values
-cd frontend && npm run build && cd ..
+cp .env.example web/.env.local   # fill NEXT_PUBLIC_* values
+cd web && npm run build && cd ..
 pm2 start ecosystem.config.js && pm2 save && pm2 startup
 ```
 
@@ -36,7 +36,7 @@ bash scripts/deploy.sh
 ```
 
 ## Lessons baked in (do NOT skip)
-1. **`npm run build` before restarting the frontend** — `NEXT_PUBLIC_*` is
+1. **`npm run build` before restarting the web** — `NEXT_PUBLIC_*` is
    compile-time. A restart alone will not apply changed env values.
 2. **`interpreter: "none"` for uvicorn in pm2** — else pm2 runs it with Node and
    it crash-loops.
@@ -58,6 +58,6 @@ pm2 logs --lines 20                                   # no tracebacks / bind err
 git rev-parse --short HEAD > /tmp/vb-prev.txt   # before deploy
 # if broken:
 git reset --hard $(cat /tmp/vb-prev.txt)
-cd frontend && npm run build && cd ..
-pm2 restart vb-backend vb-frontend
+cd web && npm run build && cd ..
+pm2 restart vb-backend vb-web
 ```

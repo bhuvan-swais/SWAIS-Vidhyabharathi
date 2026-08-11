@@ -30,6 +30,20 @@ def get_scoped_db(user: dict = Depends(get_current_user)):
         session.close()
 
 
+def get_branch_db(user: dict = Depends(get_current_user)):
+    """Yield just the branch DB session (no school_id scoping).
+
+    For modules whose tables do NOT carry a direct school_id column — e.g. the
+    imported DEMO tables, which scope to a school indirectly via class_id. Real
+    BVK tables should use get_scoped_db instead.
+    """
+    session = get_branch_session(user["branch"])
+    try:
+        yield session
+    finally:
+        session.close()
+
+
 def scope_query(query, model, school_id):
     """Apply the school_id filter unless the caller is branch-level (school_id None).
 

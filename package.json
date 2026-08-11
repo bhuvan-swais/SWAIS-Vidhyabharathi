@@ -1,0 +1,14 @@
+{
+  "name": "vidhyabharathi",
+  "private": true,
+  "workspaces": [
+    "web",
+    "mobile",
+    "shared"
+  ],
+  "scripts": {
+    "dev:web": "npm --workspace web run dev",
+    "build:web": "npm --workspace web run build",
+    "start:mobile": "npm --workspace mobile run start"
+  }
+}

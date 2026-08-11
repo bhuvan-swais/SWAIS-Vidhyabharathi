@@ -1,0 +1,29 @@
+"use client";
+// Multi-language context — ported from the demo. Pages translate their labels
+// on the fly via aiService.translateText(text, selectedLanguage).
+import React, { createContext, useContext, useState } from "react";
+
+const LanguageContext = createContext();
+
+export const LANGUAGES = [
+  { code: "en", name: "English" },
+  { code: "hi", name: "Hindi" },
+  { code: "te", name: "Telugu" },
+  { code: "kn", name: "Kannada" },
+  { code: "ta", name: "Tamil" },
+  { code: "gu", name: "Gujarati" },
+  { code: "mr", name: "Marathi" },
+  { code: "ml", name: "Malayalam" },
+];
+
+export const LanguageProvider = ({ children }) => {
+  const [selectedLanguage, setSelectedLanguage] = useState("English");
+  const changeLanguage = (langName) => setSelectedLanguage(langName);
+  return (
+    <LanguageContext.Provider value={{ selectedLanguage, changeLanguage, LANGUAGES }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+};
+
+export const useLanguage = () => useContext(LanguageContext);

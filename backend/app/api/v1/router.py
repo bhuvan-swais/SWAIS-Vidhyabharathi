@@ -11,12 +11,12 @@ from app.api.v1 import (
     panchakosha,   # holistic development index
     samskara,      # values & seva
     granthalaya,   # digital library
-    prashasana,    # administration
+    admin,         # administration (Prashasana) — School Admin
 )
 
 api_router = APIRouter()
 for module in (
     pravesha, vidyarthi, acharya, palaka, pradhana,
-    nyasa, panchakosha, samskara, granthalaya, prashasana,
+    nyasa, panchakosha, samskara, granthalaya, admin,
 ):
     api_router.include_router(module.router)

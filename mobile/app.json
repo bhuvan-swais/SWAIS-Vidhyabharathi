@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "SWAIS VidhyaBharathi",
+    "slug": "vidhyabharathi",
+    "scheme": "vidhyabharathi",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#FFF9F0"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "in.swais.vidhyabharathi"
+    },
+    "android": {
+      "package": "in.swais.vidhyabharathi"
+    },
+    "extra": {
+      "apiBaseUrl": "http://192.168.1.3:8000",
+      "aiBaseUrl": "http://16.112.236.67:7008/api/v1/student"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}
