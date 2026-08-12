@@ -5,6 +5,15 @@ const TOKEN_KEY = "vb_token";
 
 async function ensureToken() {
   if (typeof window === "undefined") return null;
+  // SSO handoff: if the login redirected here with ?token=<jwt>, capture + store it, strip the URL.
+  const url = new URL(window.location.href);
+  const handed = url.searchParams.get("token");
+  if (handed) {
+    localStorage.setItem(TOKEN_KEY, handed);
+    url.searchParams.delete("token");
+    window.history.replaceState({}, "", url.pathname + url.search);
+    return handed;
+  }
   let token = localStorage.getItem(TOKEN_KEY);
   if (token) return token;
   try {

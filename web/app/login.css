@@ -128,3 +128,13 @@
   .field input { flex: 1 1 120px; }
   .otp-btn { flex: 1 0 100%; margin: 8px 0 2px; }
 }
+
+.login-msg {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--saffron-soft, #FCE7D2);
+  color: var(--saffron-deep, #C0562A);
+  font-size: 14px;
+  line-height: 1.4;
+}

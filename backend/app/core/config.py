@@ -25,6 +25,23 @@ SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
 ALGORITHM = os.getenv("ALGORITHM", "HS256").strip()
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+# Allow-list of accepted Google OAuth client IDs (web + iOS + Android). The id_token
+# 'aud' must be one of these. Falls back to the single GOOGLE_CLIENT_ID.
+GOOGLE_CLIENT_IDS = [
+    c.strip() for c in os.getenv("GOOGLE_CLIENT_IDS", GOOGLE_CLIENT_ID).split(",") if c.strip()
+]
+
+# --- OTP (login via phone) ---
+# console = OTP returned in the API response (dev/testing, no SMS gateway yet).
+# sms     = send via the configured gateway (DLT-registered Indian gateway — NOT Twilio).
+OTP_DELIVERY_MODE = os.getenv("OTP_DELIVERY_MODE", "console").strip().lower()
+OTP_EXPIRY_MINUTES = int(os.getenv("OTP_EXPIRY_MINUTES", "5"))
+OTP_MAX_ATTEMPTS = int(os.getenv("OTP_MAX_ATTEMPTS", "5"))
+
+# Twilio SMS (used when OTP_DELIVERY_MODE=twilio) — same vars as SSS.
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "").strip()
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
+TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER", "").strip()
 
 # --- Multi-tenancy: branch (region) -> its own database ---
 # One database per branch (BVK1, BVK2, ...). Schools within a branch share the

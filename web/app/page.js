@@ -1,6 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import SwaisLogo from "./components/SwaisLogo";
 import RoleSelect from "./components/RoleSelect";
 import "./login.css";
@@ -13,13 +12,32 @@ const KOSHA = [
   { sk: "आध्यात्मिक", en: "SPIRITUAL" },
 ];
 
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+// role path (from RoleSelect) -> API role name (backend ROLE_MAP)
+const PATH_TO_ROLE = {
+  "/vidyarthi": "Vidyarthi", "/acharya": "Acharya", "/palaka": "Palaka",
+  "/pradhana": "Pradhana Acharya", "/nyasa": "Nyasa",
+};
+
+function encodeState(o) {
+  return btoa(JSON.stringify(o)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function decodeState(s) {
+  try {
+    const b = s.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(b.padEnd(Math.ceil(b.length / 4) * 4, "=")));
+  } catch { return null; }
+}
+
 export default function Home() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState(Array(6).fill(""));
   const [role, setRole] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
   const otpRefs = useRef([]);
 
   const handleOtpChange = (i, val) => {
@@ -33,12 +51,95 @@ export default function Home() {
     if (e.key === "Backspace" && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus();
   };
 
-  // TODO: wire to backend /api/v1/pravesha (verify email/OTP or Google),
-  // then route to the role returned by the token. For now, route by selection.
-  const handleContinue = () => {
-    if (!role) return;
-    router.push(role);
-  };
+  async function postJson(path, body) {
+    const r = await fetch(`${API_BASE}/api/v1/pravesha${path}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const detail = typeof data.detail === "string" ? data.detail : "";
+      throw new Error(r.status === 404 ? "Not authorised to login" : (detail || "Something went wrong."));
+    }
+    return data;
+  }
+
+  function completeLogin(data) {
+    if (!data.access_token) { setMessage("Authentication could not be completed."); return; }
+    localStorage.setItem("vb_token", data.access_token);
+    // SSO-style handoff: pass the JWT to the role's app via ?token= (same origin here).
+    const path = role || "/vidyarthi";
+    window.location.assign(`${path}?token=${encodeURIComponent(data.access_token)}`);
+  }
+
+  function startGoogleVerification(ctx) {
+    const state = encodeState({ email: ctx.email, role: ctx.role, nonce: crypto.randomUUID?.() || String(Date.now()) });
+    const redirectUri = `${window.location.origin}${window.location.pathname}`;
+    sessionStorage.setItem("vbPendingGoogle", JSON.stringify({ ...ctx, state, path: role }));
+    const params = new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID, redirect_uri: redirectUri, response_type: "id_token",
+      scope: "openid email profile", nonce: crypto.randomUUID?.() || String(Date.now()),
+      state, prompt: "select_account",
+    });
+    window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+  }
+
+  // Handle the Google redirect back (id_token in the URL hash).
+  useEffect(() => {
+    if (!window.location.hash.includes("id_token")) return;
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const token = params.get("id_token");
+    const state = params.get("state");
+    const pending = JSON.parse(sessionStorage.getItem("vbPendingGoogle") || "null");
+    const ctx = pending?.state === state ? pending : decodeState(state || "");
+    window.history.replaceState(null, "", window.location.pathname);
+    if (!token || !ctx?.email || !ctx?.role) { setMessage("Google authentication failed. Please try again."); return; }
+    sessionStorage.removeItem("vbPendingGoogle");
+    if (ctx.path) setRole(ctx.path);
+    setLoading(true);
+    postJson("/login", { email: ctx.email, role: ctx.role, google_token: token })
+      .then((d) => { role || setRole(ctx.path || "/vidyarthi"); completeLogin({ ...d, _path: ctx.path }); })
+      .catch((e) => setMessage(e.message))
+      .finally(() => setLoading(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // One adaptive action. Label + behavior follow the same priority:
+  // OTP entered -> Verify & Continue · mobile entered -> Send OTP · else -> Continue (email/Google).
+  const primaryLabel = loading
+    ? "Please wait…"
+    : otpSent ? "Verify & Continue"
+    : mobile.trim() ? "Send OTP"
+    : "Continue";
+
+  async function handlePrimary() {
+    if (!role) { setMessage("Please select your role first."); return; }
+    setLoading(true); setMessage("");
+    try {
+      // 1) OTP already sent -> verify it
+      if (otpSent) {
+        const code = otp.join("");
+        if (code.length !== 6) { setMessage("Enter the 6-digit OTP."); return; }
+        completeLogin(await postJson("/verify-otp", { phone: mobile.trim(), role: PATH_TO_ROLE[role], otp: code }));
+        return;
+      }
+      // 2) Mobile entered -> send OTP
+      if (mobile.trim()) {
+        const res = await postJson("/check-phone", { phone: mobile.trim(), role: PATH_TO_ROLE[role] });
+        setOtpSent(true);
+        setMessage(res.devOtp
+          ? `OTP sent (test mode): ${res.devOtp} — valid ${res.expiresInMinutes} min.`
+          : `OTP sent to your mobile. Valid for ${res.expiresInMinutes} minutes.`);
+        return;
+      }
+      // 3) Email -> Google (or direct login if Google isn't configured)
+      if (email.trim()) {
+        await postJson("/check-email", { email: email.trim(), role: PATH_TO_ROLE[role] });
+        if (GOOGLE_CLIENT_ID) { startGoogleVerification({ email: email.trim(), role: PATH_TO_ROLE[role] }); return; }
+        completeLogin(await postJson("/login", { email: email.trim(), role: PATH_TO_ROLE[role] }));
+        return;
+      }
+      setMessage("Enter your email, or your mobile number for OTP.");
+    } catch (e) { setMessage(e.message); } finally { setLoading(false); }
+  }
 
   return (
     <div className="login-page">
@@ -73,10 +174,7 @@ export default function Home() {
               <span className="ic"><PhoneIcon /></span>
               <span className="cc">+91</span>
               <input id="mobile" type="tel" inputMode="numeric" placeholder="98765 43210"
-                     value={mobile} onChange={(e) => setMobile(e.target.value)} />
-              <button type="button" className="otp-btn" onClick={() => setOtpSent(true)}>
-                <span className="dev">OTP भेजें</span> (Send)
-              </button>
+                     value={mobile} onChange={(e) => { setMobile(e.target.value); setOtpSent(false); }} />
             </div>
 
             {otpSent && (
@@ -95,9 +193,11 @@ export default function Home() {
             <label className="lbl" htmlFor="role"><span className="dev">भूमिका चुनें</span> <span className="lbl-en">(Select your role)</span></label>
             <RoleSelect value={role} onChange={setRole} />
 
-            <button type="button" className="continue" onClick={handleContinue} disabled={!role}>
-              <span className="dev">आगे बढ़ें</span> · Continue <ArrowIcon />
+            <button type="button" className="continue" onClick={handlePrimary} disabled={loading}>
+              <span className="dev">आगे बढ़ें</span> · {primaryLabel} <ArrowIcon />
             </button>
+
+            {message && <p className="login-msg" role="status">{message}</p>}
 
             <p className="pledge">
               By continuing you honour our shared <span className="dev">वचन</span> (pledge)
