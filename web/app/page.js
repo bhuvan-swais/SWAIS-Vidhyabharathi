@@ -162,12 +162,17 @@ export default function Home() {
           </p>
 
           <div className="card">
+            <label className="lbl" htmlFor="role"><span className="dev">भूमिका चुनें</span> <span className="lbl-en">(Select your role)</span></label>
+            <RoleSelect value={role} onChange={setRole} />
+
             <label className="lbl" htmlFor="email"><span className="dev">ईमेल</span> <span className="lbl-en">(Email)</span></label>
             <div className="field">
               <span className="ic"><MailIcon /></span>
               <input id="email" type="email" placeholder="you@school.in"
                      value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
+
+            <div className="divider"><span className="dev">अथवा</span> · OR</div>
 
             <label className="lbl" htmlFor="mobile"><span className="dev">दूरभाष</span> <span className="lbl-en">(Mobile)</span></label>
             <div className="field">
@@ -187,11 +192,6 @@ export default function Home() {
                 ))}
               </div>
             )}
-
-            <div className="divider"><span className="dev">अथवा</span> · OR</div>
-
-            <label className="lbl" htmlFor="role"><span className="dev">भूमिका चुनें</span> <span className="lbl-en">(Select your role)</span></label>
-            <RoleSelect value={role} onChange={setRole} />
 
             <button type="button" className="continue" onClick={handlePrimary} disabled={loading}>
               <span className="dev">आगे बढ़ें</span> · {primaryLabel} <ArrowIcon />
