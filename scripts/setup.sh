@@ -8,13 +8,13 @@ cd backend
 python3 -m venv .venv
 ./.venv/bin/pip install --upgrade pip
 ./.venv/bin/pip install -r requirements.txt
-[ -f .env ] || cp ../.env.example .env
+[ -f .env ] || cp .env.example .env       # then fill SECRET_KEY + DB password
 cd ..
 
 echo "==> Frontend: deps"
 cd web
 [ -f package.json ] && npm install || echo "(web not inserted yet — skipping)"
-[ -f .env.local ] || cp ../.env.example .env.local 2>/dev/null || true
+[ -f .env.local ] || cp .env.local.example .env.local   # set NEXT_PUBLIC_API_BASE_URL for prod
 cd ..
 
 echo "==> Done. Fill backend/.env and web/.env.local, then:"

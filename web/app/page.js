@@ -73,7 +73,8 @@ export default function Home() {
 
   function startGoogleVerification(ctx) {
     const state = encodeState({ email: ctx.email, role: ctx.role, nonce: crypto.randomUUID?.() || String(Date.now()) });
-    const redirectUri = `${window.location.origin}${window.location.pathname}`;
+    // const redirectUri = `${window.location.origin}${window.location.pathname}`;
+    const redirectUri = window.location.origin;
     sessionStorage.setItem("vbPendingGoogle", JSON.stringify({ ...ctx, state, path: role }));
     const params = new URLSearchParams({
       client_id: GOOGLE_CLIENT_ID, redirect_uri: redirectUri, response_type: "id_token",

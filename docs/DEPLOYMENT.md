@@ -2,33 +2,45 @@
 
 Same EC2. Two pm2 apps (backend + web) behind one nginx.
 
+Staging: **https://staging.vb.swais.in** on EC2 **18.61.240.248** (shared SWAIS box).
+Ports **8010 / 3010** (8000/3000 are taken by SGS/SSS — verify free: `sudo ss -tlnp`).
+
 ```
-nginx (HTTPS)
-  ├── /api/  → localhost:8000   vb-backend  (FastAPI/uvicorn)
-  └── /      → localhost:3000   vb-web (Next.js)
+nginx (HTTPS, staging.vb.swais.in)
+  ├── /api/  → 127.0.0.1:8010   vb-backend  (FastAPI/uvicorn)
+  └── /      → 127.0.0.1:3010   vb-web (Next.js)
 ```
 
 ## First-time setup
 ```bash
 git clone <repo> vidhyabharathi && cd vidhyabharathi
-bash scripts/setup.sh                 # backend venv + web deps
-cp .env.example backend/.env          # fill backend values
-cp .env.example web/.env.local   # fill NEXT_PUBLIC_* values
-cd web && npm run build && cd ..
+bash scripts/setup.sh                 # venv + web deps + copies .env templates
+nano backend/.env                     # SECRET_KEY, DB password, FRONTEND_ORIGIN, Twilio, OTP mode
+nano web/.env.local                   # NEXT_PUBLIC_API_BASE_URL=https://staging.vb.swais.in
+cd web && npm run build && cd ..      # REQUIRED before start — bakes NEXT_PUBLIC_*
 pm2 start ecosystem.config.js && pm2 save && pm2 startup
 ```
 
 ## nginx
 ```nginx
+# /etc/nginx/sites-available/staging.vb.swais.in  (symlink into sites-enabled)
 server {
-    server_name vidhyabharathi.<domain>;
-    location /api/ { proxy_pass http://localhost:8000; proxy_set_header Host $host;
-                     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; }
-    location /     { proxy_pass http://localhost:3000; proxy_set_header Host $host;
-                     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; }
+    server_name staging.vb.swais.in;
+    location /api/ { proxy_pass http://127.0.0.1:8010; proxy_set_header Host $host;
+                     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                     proxy_set_header X-Forwarded-Proto $scheme; }
+    location /     { proxy_pass http://127.0.0.1:3010; proxy_set_header Host $host;
+                     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                     proxy_set_header X-Forwarded-Proto $scheme; }
 }
 ```
-`sudo nginx -t && sudo systemctl reload nginx && sudo certbot --nginx -d vidhyabharathi.<domain>`
+`sudo nginx -t && sudo systemctl reload nginx && sudo certbot --nginx -d staging.vb.swais.in`
+
+**Prod env values** (set before `npm run build`):
+- `web/.env.local` → `NEXT_PUBLIC_API_BASE_URL=https://staging.vb.swais.in`
+- `backend/.env` → `FRONTEND_ORIGIN=https://staging.vb.swais.in`, Twilio creds, `OTP_DELIVERY_MODE=twilio`
+- Google OAuth client → add origin `https://staging.vb.swais.in` + redirect `https://staging.vb.swais.in/`
+- EC2 security group: open **80 + 443** (8010/3010 stay internal — nginx proxies them)
 
 ## Routine deploy — `scripts/deploy.sh`
 ```bash
