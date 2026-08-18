@@ -50,6 +50,25 @@
 .divider { display: flex; align-items: center; gap: 14px; margin: 6px 2px 20px; color: var(--muted); font-size: 13px; letter-spacing: 2px; }
 .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 
+/* ---- login method tabs ---- */
+.method-sep { display: flex; align-items: center; gap: 14px; margin: 4px 0 16px;
+  color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+.method-sep::before, .method-sep::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+.method-tabs { display: grid; grid-template-columns: 1fr 1fr; background: #F6EAD9;
+  border-radius: 14px; padding: 4px; margin-bottom: 20px; gap: 4px; }
+.method-tab { display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 13px 16px; border: 0; border-radius: 11px; background: transparent;
+  color: #A08060; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--sans);
+  transition: background .22s ease, color .22s ease, box-shadow .22s ease; }
+.method-tab .ic-svg { width: 16px; height: 16px; }
+.method-tab.active { background: linear-gradient(135deg, #F49B45, #E0651A); color: #fff;
+  box-shadow: 0 6px 18px rgba(192, 86, 42, .28); }
+.method-tab:not(.active):hover { background: rgba(192, 86, 42, .08); color: var(--saffron-deep); }
+
+.tab-content { animation: tab-in .2s ease; }
+@keyframes tab-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
 /* ---- custom role dropdown ---- */
 .rs { position: relative; margin-bottom: 22px; }
 .rs-trigger { width: 100%; min-height: 60px; padding: 0 16px; border: 1.5px solid var(--line); border-radius: 14px;

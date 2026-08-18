@@ -36,6 +36,7 @@ export default function Home() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState(Array(6).fill(""));
   const [role, setRole] = useState("");
+  const [loginMethod, setLoginMethod] = useState("email");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const otpRefs = useRef([]);
@@ -163,36 +164,62 @@ export default function Home() {
           </p>
 
           <div className="card">
+            {/* Role */}
             <label className="lbl" htmlFor="role"><span className="dev">भूमिका चुनें</span> <span className="lbl-en">(Select your role)</span></label>
             <RoleSelect value={role} onChange={setRole} />
 
-            <label className="lbl" htmlFor="email"><span className="dev">ईमेल</span> <span className="lbl-en">(Email)</span></label>
-            <div className="field">
-              <span className="ic"><MailIcon /></span>
-              <input id="email" type="email" placeholder="you@school.in"
-                     value={email} onChange={(e) => setEmail(e.target.value)} />
+            {/* Method separator */}
+            <div className="method-sep"><span>Login with</span></div>
+
+            {/* Tab switcher */}
+            <div className="method-tabs">
+              <button
+                type="button"
+                className={`method-tab${loginMethod === "email" ? " active" : ""}`}
+                onClick={() => { setLoginMethod("email"); setMobile(""); setOtpSent(false); setOtp(Array(6).fill("")); setMessage(""); }}
+              >
+                <MailIcon /> <span className="dev">ईमेल</span> · Email
+              </button>
+              <button
+                type="button"
+                className={`method-tab${loginMethod === "mobile" ? " active" : ""}`}
+                onClick={() => { setLoginMethod("mobile"); setEmail(""); setMessage(""); }}
+              >
+                <PhoneIcon /> <span className="dev">दूरभाष</span> · Mobile
+              </button>
             </div>
 
-            <div className="divider"><span className="dev">अथवा</span> · OR</div>
-
-            <label className="lbl" htmlFor="mobile"><span className="dev">दूरभाष</span> <span className="lbl-en">(Mobile)</span></label>
-            <div className="field">
-              <span className="ic"><PhoneIcon /></span>
-              <span className="cc">+91</span>
-              <input id="mobile" type="tel" inputMode="numeric" placeholder="98765 43210"
-                     value={mobile} onChange={(e) => { setMobile(e.target.value); setOtpSent(false); }} />
+            {/* Input area — animates on tab switch */}
+            <div className="tab-content" key={loginMethod}>
+              {loginMethod === "email" ? (
+                <div className="field">
+                  <span className="ic"><MailIcon /></span>
+                  <input id="email" type="email" placeholder="you@school.in"
+                         value={email} onChange={(e) => setEmail(e.target.value)}
+                         onKeyDown={(e) => e.key === "Enter" && handlePrimary()} />
+                </div>
+              ) : (
+                <>
+                  <div className="field">
+                    <span className="ic"><PhoneIcon /></span>
+                    <span className="cc">+91</span>
+                    <input id="mobile" type="tel" inputMode="numeric" placeholder="98765 43210"
+                           value={mobile} onChange={(e) => { setMobile(e.target.value); setOtpSent(false); }}
+                           onKeyDown={(e) => e.key === "Enter" && handlePrimary()} />
+                  </div>
+                  {otpSent && (
+                    <div className="otp-row" role="group" aria-label="Enter 6 digit OTP">
+                      {otp.map((d, i) => (
+                        <input key={i} ref={(el) => (otpRefs.current[i] = el)} className="otp-box"
+                               inputMode="numeric" maxLength={1} value={d}
+                               onChange={(e) => handleOtpChange(i, e.target.value)}
+                               onKeyDown={(e) => handleOtpKey(i, e)} />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-
-            {otpSent && (
-              <div className="otp-row" role="group" aria-label="Enter 6 digit OTP">
-                {otp.map((d, i) => (
-                  <input key={i} ref={(el) => (otpRefs.current[i] = el)} className="otp-box"
-                         inputMode="numeric" maxLength={1} value={d}
-                         onChange={(e) => handleOtpChange(i, e.target.value)}
-                         onKeyDown={(e) => handleOtpKey(i, e)} />
-                ))}
-              </div>
-            )}
 
             <button type="button" className="continue" onClick={handlePrimary} disabled={loading}>
               <span className="dev">आगे बढ़ें</span> · {primaryLabel} <ArrowIcon />
