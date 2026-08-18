@@ -38,6 +38,7 @@ export default function Home() {
   const [role, setRole] = useState("");
   const [loginMethod, setLoginMethod] = useState("email");
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [message, setMessage] = useState("");
   const otpRefs = useRef([]);
 
@@ -67,7 +68,7 @@ export default function Home() {
   function completeLogin(data) {
     if (!data.access_token) { setMessage("Authentication could not be completed."); return; }
     localStorage.setItem("vb_token", data.access_token);
-    // SSO-style handoff: pass the JWT to the role's app via ?token= (same origin here).
+    setRedirecting(true);
     const path = role || "/vidyarthi";
     window.location.assign(`${path}?token=${encodeURIComponent(data.access_token)}`);
   }
@@ -142,6 +143,13 @@ export default function Home() {
       setMessage("Enter your email, or your mobile number for OTP.");
     } catch (e) { setMessage(e.message); } finally { setLoading(false); }
   }
+
+  if (redirecting) return (
+    <div className="redir-overlay">
+      <div className="redir-spinner" />
+      <p className="redir-text"><span className="dev">प्रवेश हो रहा है</span> · Entering…</p>
+    </div>
+  );
 
   return (
     <div className="login-page">

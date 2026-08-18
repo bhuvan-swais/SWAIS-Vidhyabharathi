@@ -148,6 +148,15 @@
   .otp-btn { flex: 1 0 100%; margin: 8px 0 2px; }
 }
 
+/* ---- redirect overlay ---- */
+.redir-overlay { position: fixed; inset: 0; background: linear-gradient(135deg, #FDF6EE, #FBE8D0);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; z-index: 999; }
+.redir-spinner { width: 48px; height: 48px; border: 4px solid #F6EAD9; border-top-color: var(--saffron-deep);
+  border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.redir-text { font-size: 16px; font-weight: 600; color: var(--saffron-deep); }
+.redir-text .dev { font-weight: 700; }
+
 .login-msg {
   margin-top: 12px;
   padding: 10px 14px;
