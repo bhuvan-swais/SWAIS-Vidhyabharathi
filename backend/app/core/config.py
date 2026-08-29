@@ -61,8 +61,9 @@ AI_SERVICE_SECRET = os.getenv("AI_SERVICE_SECRET", "").strip()
 CENTRAL_DB_URL = os.getenv("CENTRAL_DATABASE_URL", "").strip()
 
 # --- S3 (private): Granthalaya books/covers, chapter PDFs, worksheets ---
-AWS_REGION = os.getenv("AWS_REGION", "").strip()
-AWS_S3_BUCKET = os.getenv("AWS_S3_BUCKET", "").strip()
+# Accept both naming conventions: AWS_REGION / AWS_BUCKET_REGION, AWS_S3_BUCKET / AWS_BUCKET_NAME
+AWS_REGION = (os.getenv("AWS_REGION") or os.getenv("AWS_BUCKET_REGION", "")).strip()
+AWS_S3_BUCKET = (os.getenv("AWS_S3_BUCKET") or os.getenv("AWS_BUCKET_NAME", "")).strip()
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "").strip()
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "").strip()
 
