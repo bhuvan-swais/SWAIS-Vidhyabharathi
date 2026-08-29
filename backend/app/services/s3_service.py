@@ -29,6 +29,11 @@ def _client():
     )
 
 
+def s3_configured() -> bool:
+    """True only when all four AWS vars are present. Gate every S3 call on this."""
+    return bool(AWS_S3_BUCKET and AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_REGION)
+
+
 def build_key(branch: str, school_id: str, *parts: str) -> str:
     return "/".join([branch, school_id, *[str(p) for p in parts]])
 
