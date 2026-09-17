@@ -1,0 +1,514 @@
+"use client";
+
+import { useState, useEffect, useRef, useCallback } from "react";
+import { getStroke } from "perfect-freehand";
+import { useNotes } from "@/context/NotesContext";
+import { useToast } from "@/components/ui/Toast";
+import Modal from "@/components/ui/Modal";
+import Button from "@/components/ui/Button";
+
+function getSvgPathFromStroke(stroke) {
+  if (!stroke.length) return "";
+  const d = stroke.reduce(
+    (acc, [x0, y0], i, arr) => {
+      const [x1, y1] = arr[(i + 1) % arr.length];
+      acc.push(x0, y0, (x0 + x1) / 2, (y0 + y1) / 2);
+      return acc;
+    },
+    ["M", ...stroke[0], "Q"]
+  );
+  d.push("Z");
+  return d.join(" ");
+}
+
+const STROKE_OPTS = { smoothing: 0.5, thinning: 0.5, streamline: 0.5, simulatePressure: true };
+
+function renderStrokes(ctx, strokes, currentPoints, penColor, penSize) {
+  for (const s of strokes) {
+    const pts = getStroke(s.points, { ...STROKE_OPTS, size: s.size, last: true });
+    if (!pts.length) continue;
+    ctx.fillStyle = s.color;
+    ctx.fill(new Path2D(getSvgPathFromStroke(pts)));
+  }
+  if (currentPoints.length > 1) {
+    const pts = getStroke(currentPoints, { ...STROKE_OPTS, size: penSize });
+    if (pts.length) {
+      ctx.fillStyle = penColor;
+      ctx.fill(new Path2D(getSvgPathFromStroke(pts)));
+    }
+  }
+}
+
+function drawNotebookBg(ctx, w, h) {
+  ctx.fillStyle = "#fffbeb"; 
+  ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = "#fed7aa"; 
+  ctx.lineWidth = 1;
+  for (let y = 36; y < h; y += 32) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "#fca5a5"; 
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(52, 0);
+  ctx.lineTo(52, h);
+  ctx.stroke();
+}
+
+const PEN_COLORS = [
+  { value: "#1a1a1a", label: "Black" },
+  { value: "#ea580c", label: "Orange" },
+  { value: "#dc2626", label: "Red" },
+  { value: "#059669", label: "Green" },
+];
+const PEN_SIZES = [ { label: "S", value: 3 }, { label: "M", value: 5 }, { label: "L", value: 8 } ];
+
+export default function NoteForm({ isOpen, onClose, editNote = null, initialChapter = "", onCreated = null }) {
+  const { addNote, editNote: updateNote, chapters } = useNotes();
+  const toast = useToast();
+  const isEditing = !!editNote;
+
+  const [title, setTitle]     = useState("");
+  const [chapter, setChapter] = useState("");
+  const [content, setContent] = useState("");
+  const [errors, setErrors]   = useState({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [inputMode, setInputMode] = useState("voice");
+  const [contentType, setContentType] = useState("voice");
+
+  const [isListening, setIsListening]   = useState(false);
+  const [interimText, setInterimText]   = useState("");
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const recognitionRef      = useRef(null);
+  const finalTranscriptRef  = useRef(""); 
+
+  const canvasRef           = useRef(null);
+  const [strokes, setStrokes]             = useState([]);
+  const [currentPoints, setCurrentPoints] = useState([]);
+  const [isDrawing, setIsDrawing]         = useState(false);
+  const [penColor, setPenColor]           = useState(PEN_COLORS[0].value);
+  const [penSize, setPenSize]             = useState(5);
+  const [canvasHasContent, setCanvasHasContent] = useState(false);
+
+  useEffect(() => {
+    setVoiceSupported(typeof window !== "undefined" && !!(window.SpeechRecognition || window.webkitSpeechRecognition));
+  }, []);
+
+  useEffect(() => {
+    if (editNote) {
+      setTitle(editNote.title || "");
+      setChapter(editNote.chapter || "");
+      setContent(editNote.content || "");
+      finalTranscriptRef.current = editNote.content || "";
+      const mode = editNote.contentType === "voice" ? "voice" : editNote.contentType === "handwritten" ? "write" : "type";
+      setInputMode(mode);
+      setContentType(editNote.contentType || "typed");
+    } else {
+      setTitle("");
+      setChapter(initialChapter || "");
+      setContent("");
+      setInputMode("voice");
+      setContentType("voice");
+      setStrokes([]);
+      setCurrentPoints([]);
+      setCanvasHasContent(false);
+      finalTranscriptRef.current = "";
+    }
+    setErrors({});
+    setInterimText("");
+  }, [editNote, isOpen, initialChapter]);
+
+  useEffect(() => { if (!isOpen) stopListening(); }, [isOpen]);
+
+  useEffect(() => {
+    if (inputMode !== "write") return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    drawNotebookBg(ctx, canvas.width, canvas.height);
+    renderStrokes(ctx, strokes, currentPoints, penColor, penSize);
+  }, [inputMode, strokes, currentPoints, penColor, penSize]);
+
+  useEffect(() => () => stopListening(), []);
+
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+    setInterimText("");
+  }, []);
+
+  const startListening = useCallback(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+
+    const rec = new SR();
+    rec.continuous      = true;
+    rec.interimResults  = true;
+    rec.lang            = "en-IN";
+
+    rec.onstart = () => setIsListening(true);
+    rec.onend   = () => { setIsListening(false); setInterimText(""); };
+    rec.onerror = () => { setIsListening(false); setInterimText(""); };
+
+    rec.onresult = (event) => {
+      let interim = "";
+      let newFinal = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) newFinal += t + " ";
+        else interim += t;
+      }
+      if (newFinal) {
+        const updated = finalTranscriptRef.current + newFinal;
+        finalTranscriptRef.current = updated;
+        setContent(updated);
+        if (errors.content) setErrors((p) => ({ ...p, content: undefined }));
+      }
+      setInterimText(interim);
+    };
+
+    recognitionRef.current = rec;
+    rec.start();
+  }, [errors.content]);
+
+  const toggleListening = () => (isListening ? stopListening() : startListening());
+
+  const getPoint = (e) => {
+    const canvas = canvasRef.current;
+    const rect   = canvas.getBoundingClientRect();
+    const sx     = canvas.width  / rect.width;
+    const sy     = canvas.height / rect.height;
+    return [ (e.clientX - rect.left) * sx, (e.clientY - rect.top)  * sy, e.pressure || 0.5 ];
+  };
+
+  const onCanvasDown = (e) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setIsDrawing(true);
+    setCurrentPoints([getPoint(e)]);
+    setCanvasHasContent(true);
+  };
+
+  const onCanvasMove = (e) => {
+    if (!isDrawing) return;
+    setCurrentPoints((prev) => [...prev, getPoint(e)]);
+  };
+
+  const onCanvasUp = () => {
+    if (!isDrawing) return;
+    if (currentPoints.length > 0) {
+      setStrokes((prev) => [ ...prev, { points: currentPoints, color: penColor, size: penSize } ]);
+    }
+    setCurrentPoints([]);
+    setIsDrawing(false);
+  };
+
+  const undoStroke = () => {
+    setStrokes((prev) => {
+      const next = prev.slice(0, -1);
+      if (!next.length) setCanvasHasContent(false);
+      return next;
+    });
+  };
+
+  const clearCanvas = () => {
+    setStrokes([]);
+    setCurrentPoints([]);
+    setCanvasHasContent(false);
+  };
+
+  const exportCanvas = () => canvasRef.current ? canvasRef.current.toDataURL("image/png") : null;
+
+  const switchMode = (mode) => {
+    if (isListening) stopListening();
+    setInputMode(mode);
+    const ct = mode === "voice" ? "voice" : mode === "write" ? "handwritten" : "typed";
+    setContentType(ct);
+    setErrors({});
+  };
+
+  const validate = () => {
+    const errs = {};
+    if (!title.trim())  errs.title   = "Title is required";
+    if (!chapter)       errs.chapter = "Please select a chapter";
+
+    if (inputMode === "write") {
+      if (!canvasHasContent && !content.trim())
+        errs.canvas = "Please draw something or add key points below";
+    } else {
+      if (!content.trim())           errs.content = "Content is required";
+      else if (content.trim().length < 20)
+        errs.content = "Content must be at least 20 characters";
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (isListening) stopListening();
+    if (!validate()) return;
+
+    setIsSaving(true);
+    try {
+      const noteData = {
+        title:         title.trim(),
+        chapter,
+        content:       content.trim(),
+        content_type:  contentType, 
+        canvas_image:  inputMode === "write" && canvasHasContent ? exportCanvas() : editNote?.canvasImageUrl ?? null,
+      };
+
+      await (isEditing ? updateNote(editNote.id, noteData) : addNote(noteData));
+      toast.success(
+        isEditing ? "Note updated successfully" : "Note created successfully",
+        isEditing ? "Updated" : "Created"
+      );
+      if (!isEditing && onCreated) onCreated();
+      else onClose();
+    } catch (err) {
+      console.error("Failed to save note:", err);
+      toast.error("Could not save note. Please try again.", "Error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const clearErr = (field) => setErrors((p) => ({ ...p, [field]: undefined }));
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? "सम्पादनम् (Edit Note)" : "नूतन टिप्पणी (Create Note)"}
+      maxWidth="max-w-4xl"
+      id="note-form-modal"
+    >
+      <form onSubmit={handleSubmit} className="space-y-5 font-inter">
+
+        {/* ── Title + Chapter ── */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="note-title" className="block text-sm font-bold text-gray-700 mb-1.5">
+              शीर्षकम् (Title) <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="note-title"
+              type="text"
+              value={title}
+              onChange={(e) => { setTitle(e.target.value); clearErr("title"); }}
+              placeholder="Enter note title..."
+              className={`w-full px-4 py-2.5 border rounded-xl text-sm text-gray-900 placeholder:text-gray-400
+                focus:outline-none focus:ring-2 transition-all duration-200
+                ${errors.title ? "border-red-500 focus:ring-red-200" : "border-gray-200 focus:ring-orange-200 focus:border-orange-500"}`}
+            />
+            {errors.title && <p className="mt-1 text-xs font-bold text-red-500">{errors.title}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="note-chapter" className="block text-sm font-bold text-gray-700 mb-1.5">
+              पाठः (Chapter) <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="note-chapter"
+              value={chapter}
+              onChange={(e) => { setChapter(e.target.value); clearErr("chapter"); }}
+              className={`w-full px-4 py-2.5 border rounded-xl text-sm text-gray-900 bg-white cursor-pointer
+                focus:outline-none focus:ring-2 transition-all duration-200
+                ${errors.chapter ? "border-red-500 focus:ring-red-200" : "border-gray-200 focus:ring-orange-200 focus:border-orange-500"}`}
+            >
+              <option value="">Select a chapter...</option>
+              {chapters.map((ch) => {
+                const label = typeof ch === "string" ? ch : (ch.content_title ?? ch.chapter_name ?? String(ch.chapter_id));
+                const key   = typeof ch === "string" ? ch : ch.chapter_id;
+                return <option key={key} value={label}>{label}</option>;
+              })}
+            </select>
+            {errors.chapter && <p className="mt-1 text-xs font-bold text-red-500">{errors.chapter}</p>}
+          </div>
+        </div>
+
+        {/* ── Mode Picker + Content ── */}
+        <div className="grid gap-5 md:grid-cols-[240px_minmax(0,1fr)]">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">माध्यमम् (Input Mode)</label>
+            <div className="grid grid-cols-3 md:grid-cols-1 gap-2">
+              {[
+                { id: "voice", icon: "🎤", label: "Voice", desc: "Speak your note" },
+                { id: "write", icon: "✏️",  label: "Write", desc: "Handwrite / draw" },
+                { id: "type",  icon: "⌨️",  label: "Type",  desc: "Plain text" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => switchMode(tab.id)}
+                  className={`flex flex-col md:flex-row items-center md:items-start gap-1.5 md:gap-2.5 p-3 rounded-xl border text-center md:text-left transition-all duration-200
+                    ${inputMode === tab.id
+                      ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
+                      : "border-gray-200 text-gray-500 hover:border-orange-300 hover:bg-gray-50"}`}
+                >
+                  <span className="text-lg leading-none md:mt-0.5">{tab.icon}</span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold">{tab.label}</span>
+                    <span className="hidden md:block text-[11px] font-medium text-gray-400 mt-0.5">{tab.desc}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="min-w-0">
+          
+          {/* VOICE MODE */}
+          {inputMode === "voice" && (
+            <div className="space-y-4 animate-fade-in">
+              {!voiceSupported && (
+                <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+                  <span className="text-red-500 text-base mt-0.5">⚠️</span>
+                  <p className="text-sm font-medium text-red-800">
+                    Voice input requires Chrome/Edge. Switch to Type mode instead.
+                  </p>
+                </div>
+              )}
+              <div className="flex flex-col items-center gap-4 py-6 bg-gray-50 rounded-2xl border border-gray-200">
+                <div className="relative">
+                  {isListening && (
+                    <>
+                      <span className="absolute inset-0 rounded-full bg-red-500/20 animate-ping" />
+                      <span className="absolute inset-[-8px] rounded-full bg-red-500/10 animate-ping" style={{ animationDelay: "0.2s" }} />
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    disabled={!voiceSupported}
+                    onClick={toggleListening}
+                    className={`relative w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed
+                      ${isListening ? "bg-red-600 shadow-red-600/30 scale-110" : "bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 hover:scale-105 shadow-orange-500/30"}`}
+                  >
+                    {isListening ? (
+                      <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+                    ) : (
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                <p className={`text-sm font-bold transition-colors ${isListening ? "text-red-600" : "text-gray-500"}`}>
+                  {isListening ? "शृणोमि… (Listening... tap to stop)" : "Tap to speak your note"}
+                </p>
+                {isListening && (
+                  <div className="flex items-center gap-[3px] h-8" aria-hidden="true">
+                    {[3, 7, 5, 10, 4, 8, 3, 9, 5, 7, 3].map((h, i) => (
+                      <div key={i} className="w-[3px] bg-red-500 rounded-full animate-bounce" style={{ height: `${h * 2.5}px`, animationDelay: `${i * 0.08}s`, animationDuration: "0.7s" }} />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                  लेख्यम् (Transcript) <span className="text-red-500"> *</span>
+                </label>
+                <textarea
+                  value={content}
+                  onChange={(e) => { setContent(e.target.value); finalTranscriptRef.current = e.target.value; clearErr("content"); }}
+                  placeholder="Your spoken words appear here automatically..."
+                  rows={5}
+                  className={`w-full px-4 py-2.5 border rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all resize-y
+                    ${errors.content ? "border-red-500 focus:ring-red-200" : "border-gray-200 focus:ring-orange-200 focus:border-orange-500"}`}
+                />
+                {interimText && <p className="mt-1.5 px-3 py-1.5 bg-orange-50 rounded-lg text-sm font-medium text-orange-700 italic">{interimText}…</p>}
+                {errors.content && <p className="mt-1 text-xs font-bold text-red-500">{errors.content}</p>}
+              </div>
+            </div>
+          )}
+
+          {/* WRITE MODE */}
+          {inputMode === "write" && (
+            <div className="space-y-3 animate-fade-in">
+              <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  {PEN_COLORS.map((c) => (
+                    <button key={c.value} type="button" onClick={() => setPenColor(c.value)}
+                      className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${penColor === c.value ? "scale-125 border-gray-400 shadow" : "border-transparent"}`}
+                      style={{ background: c.value }} />
+                  ))}
+                </div>
+                <div className="w-px h-5 bg-gray-300" />
+                <div className="flex items-center gap-1">
+                  {PEN_SIZES.map((s) => (
+                    <button key={s.value} type="button" onClick={() => setPenSize(s.value)}
+                      className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${penSize === s.value ? "bg-orange-500 text-white shadow-sm" : "bg-white text-gray-500 hover:bg-orange-50 hover:text-orange-600"}`}>
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="w-px h-5 bg-gray-300" />
+                <button type="button" onClick={undoStroke} disabled={!strokes.length} className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-gray-500 hover:text-gray-900 hover:bg-white rounded-lg transition-all disabled:opacity-30">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg> Undo
+                </button>
+                <button type="button" onClick={clearCanvas} disabled={!canvasHasContent} className="px-2 py-1 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-30">
+                  Clear
+                </button>
+              </div>
+
+              <div className={`rounded-xl overflow-hidden border-2 transition-colors ${errors.canvas ? "border-red-500" : "border-gray-200"}`}>
+                <canvas ref={canvasRef} width={640} height={320} className="w-full touch-none select-none bg-orange-50/30" style={{ cursor: "crosshair" }}
+                  onPointerDown={onCanvasDown} onPointerMove={onCanvasMove} onPointerUp={onCanvasUp} onPointerLeave={onCanvasUp} />
+              </div>
+              {errors.canvas && <p className="text-xs font-bold text-red-500">{errors.canvas}</p>}
+              
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1.5">मुख्यबिन्दवः (Key Points)</label>
+                <textarea
+                  value={content}
+                  onChange={(e) => { setContent(e.target.value); clearErr("canvas"); }}
+                  placeholder="Summarize what you wrote above..."
+                  rows={3}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500 transition-all resize-y"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* TYPE MODE */}
+          {inputMode === "type" && (
+            <div className="animate-fade-in">
+              <label htmlFor="note-content" className="block text-sm font-bold text-gray-700 mb-1.5">
+                सामग्री (Content) <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                id="note-content"
+                value={content}
+                onChange={(e) => { setContent(e.target.value); clearErr("content"); }}
+                placeholder="Write your note content here…"
+                rows={8}
+                className={`w-full px-4 py-2.5 border rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all resize-y
+                  ${errors.content ? "border-red-500 focus:ring-red-200" : "border-gray-200 focus:ring-orange-200 focus:border-orange-500"}`}
+              />
+              {errors.content && <p className="mt-1 text-xs font-bold text-red-500">{errors.content}</p>}
+            </div>
+          )}
+          </div>
+        </div>
+
+        {/* ── Actions ── */}
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+          <Button variant="ghost" onClick={onClose} type="button">
+            रद्द (Cancel)
+          </Button>
+          <Button type="submit" loading={isSaving} id="note-save-btn" className="bg-orange-600 hover:bg-orange-700 text-white font-bold">
+            {isEditing ? "Save Changes" : "अभिलेख (Create Note)"}
+          </Button>
+        </div>
+
+      </form>
+    </Modal>
+  );
+}

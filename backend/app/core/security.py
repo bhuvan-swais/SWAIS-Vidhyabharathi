@@ -1,55 +1,33 @@
-"""Authentication & authorization — SWAIS VidhyaBharathi (Pravesha).
+from datetime import datetime, timedelta, timezone
+from typing import Optional
 
-The login token carries the full tenancy path + role:
-    { "sub", "user_id", "branch", "school_id", "role" }
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 
-- branch    -> which database (BVK1, BVK2, ...)
-- school_id -> which school within that branch (None for Nyasa/trust-level)
-- role      -> Vidyarthi / Acharya / Palaka / Pradhana Acharya / Nyasa / School Admin
-"""
-from datetime import datetime, timedelta
+from app.core.config import settings
 
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt, JWTError
-
-from app.core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
-
-bearer_scheme = HTTPBearer()
-
-# Roles that operate above a single school (see one whole branch).
-BRANCH_LEVEL_ROLES = {"Nyasa"}
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def create_access_token(data: dict) -> str:
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    to_encode["exp"] = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    expire = datetime.now(timezone.utc) + (
+        expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def decode_token(token: str) -> dict | None:
+def decode_token(token: str) -> Optional[dict]:
     try:
-        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except JWTError:
         return None
-
-
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-) -> dict:
-    payload = decode_token(credentials.credentials)
-    if payload is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token")
-    if not payload.get("branch"):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token missing branch")
-    return payload  # {sub, user_id, branch, school_id, role}
-
-
-def require_role(*allowed: str):
-    """Endpoint guard: only the listed roles may proceed. This is the REAL
-    security — frontend routing is only UX. Every protected endpoint uses this."""
-    def checker(user: dict = Depends(get_current_user)) -> dict:
-        if user.get("role") not in allowed:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, "Not authorized for this role")
-        return user
-    return checker

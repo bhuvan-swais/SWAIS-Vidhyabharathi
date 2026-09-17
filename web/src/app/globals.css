@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+/* 1. Enable manual class-based dark mode in Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 2. Map Tailwind utilities */
+@theme inline {
+  --color-primary:        #EA580C;
+  --color-primary-dark:   #C2410C;
+  --color-primary-light:  #FFF7ED;
+}
+
+/* 3. Define Light & Premium Warm Dark Palettes */
+@layer base {
+  :root {
+    color-scheme: light;
+    --theme-bg:             #FAFAFA; 
+    --theme-surface:        #FFFFFF; 
+    --theme-text:           #1C1917; 
+    --theme-text-muted:     #57534E; 
+    --theme-border:         #E7E5E4; 
+  }
+  
+  :root.dark, .dark {
+    color-scheme: dark;
+    --theme-bg:             #141110; /* Premium warm dark background */
+    --theme-surface:        #1C1917; /* Elevated card surface */
+    
+    /* Using the Orange Shade for Text and Borders */
+    --theme-text:           #FFF7ED; /* Warm orange-tinted white for main text */
+    --theme-text-muted:     #FDBA74; /* Soft orange for secondary text/icons */
+    --theme-border:         rgba(234, 88, 12, 0.3); /* Glowing orange borders */
+  }
+}
+
+/* 4. Global Structural Backgrounds */
+body {
+  background-color: var(--theme-bg);
+  color: var(--theme-text);
+  font-family: "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 5. Fix Native Dropdowns (Select Menus) */
+select {
+  background-color: var(--theme-surface) !important;
+  color: var(--theme-text) !important;
+  border-color: var(--theme-border) !important;
+}
+select option {
+  background-color: var(--theme-surface);
+  color: var(--theme-text);
+}
+
+/* ==============================================================
+   6. AUTO-DARK MODE ENGINE
+   ============================================================== */
+/* Ignore decorative translucent bubbles by checking for opacity classes */
+.dark .bg-white:not([class*="opacity-"]) { background-color: var(--theme-surface) !important; }
+.dark .bg-gray-50, .dark .bg-slate-50 { background-color: var(--theme-bg) !important; }
+
+.dark .text-gray-900, 
+.dark .text-gray-800, 
+.dark .text-gray-700 { color: var(--theme-text) !important; }
+
+.dark .text-gray-600, 
+.dark .text-gray-500 { color: var(--theme-text-muted) !important; }
+
+.dark .border-gray-200, 
+.dark .border-gray-100 { border-color: var(--theme-border) !important; }
+
+/* 7. Custom Scrollbar for Dark Mode */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--theme-border); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: var(--theme-text-muted); }
+
+/* 8. Components & AI Styles */
+.ai-gradient-text {
+  background: linear-gradient(135deg, #EA580C 0%, #F59E0B 50%, #FCD34D 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glass-card {
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(234,88,12,0.1);
+}
+.dark .glass-card {
+  background: rgba(28, 25, 23, 0.85);
+  border: 1px solid rgba(234, 88, 12, 0.2); /* Subtle orange glass border */
+}
+
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(168,162,158,0.15) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.dark .dot-grid {
+  background-image: radial-gradient(circle, rgba(234, 88, 12, 0.08) 1px, transparent 1px); /* Orange dot texture */
+}

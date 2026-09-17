@@ -1,23 +1,27 @@
-"""Declarative base for VidhyaBharathi models.
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-IMPORTANT: every tenant table must inherit TenantModel (or otherwise carry a
-`school_id` column). This is what makes school-level scoping possible. Tables
-without school_id can only be branch-wide reference data.
-"""
-from sqlalchemy import Column, String
-from sqlalchemy.orm import declarative_base
+from app.core.config import settings
+from app.db.pool import build_engine
 
-Base = declarative_base()
+# Pool size is derived from the database's own max_connections at startup —
+# see app/db/pool.py. Nothing here needs adjusting per environment.
+engine = build_engine(
+    settings.DATABASE_URL,
+    service="vb-acharya-api",
+    slots=settings.DB_SERVICE_SLOTS,
+    reserve=settings.DB_RESERVE,
+)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-class TenantModel(Base):
-    """Mixin base: guarantees every school-owned table has a school_id.
+class Base(DeclarativeBase):
+    pass
 
-    Example:
-        class Student(TenantModel):
-            __tablename__ = "students"
-            student_id = Column(BigInteger, primary_key=True)
-            name = Column(String)
-    """
-    __abstract__ = True
-    school_id = Column(String(20), nullable=False, index=True)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
