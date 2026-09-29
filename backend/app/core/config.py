@@ -43,6 +43,22 @@ TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "").strip()
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
 TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER", "").strip()
 
+# Nimbus SMS — the DLT-registered Indian gateway, used when
+# OTP_DELIVERY_MODE=nimbus. The same account already sends OTPs in production
+# for the other product, so the sender and entity are registered with TRAI.
+#
+# NIMBUS_TEMPLATE_ID must match the DLT template the message text is registered
+# against. The gateway rejects a message whose wording differs from its
+# template, so OTP_SMS_TEXT and the template have to be changed together.
+NIMBUS_USER_ID = os.getenv("NIMBUS_USER_ID", "").strip()
+NIMBUS_PASSWORD = os.getenv("NIMBUS_PASSWORD", "").strip()
+NIMBUS_SENDER_ID = os.getenv("NIMBUS_SENDER_ID", "").strip()
+NIMBUS_ENTITY_ID = os.getenv("NIMBUS_ENTITY_ID", "").strip()
+NIMBUS_TEMPLATE_ID = os.getenv("NIMBUS_TEMPLATE_ID", "").strip()
+NIMBUS_API_URL = os.getenv(
+    "NIMBUS_API_URL", "http://nimbusit.biz/api/SmsApi/SendSingleApi"
+).strip()
+
 # --- Multi-tenancy: branch (region) -> its own database ---
 # One database per branch (BVK1, BVK2, ...). Schools within a branch share the
 # tables and are separated by a school_id column. See docs/TENANCY.md.
