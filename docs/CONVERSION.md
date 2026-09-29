@@ -1,7 +1,7 @@
 # Demo → VidhyaBharathi conversion playbook
 
 How to convert the 3 demo apps (Student, Admin, Headmaster — all FastAPI +
-Next.js on `dem_prod`) into this monorepo (web + mobile + shared backend).
+Next.js on `vb_prod`) into this monorepo (web + mobile + shared backend).
 
 **Vidyarthi (Student) backend is the reference implementation** — copy its shape
 for Admin and Headmaster.
@@ -18,9 +18,9 @@ SchoolMaster, ClassMaster, SubjectMaster, NoticeBoard) — mapped once, reused b
 all routers. All 3 backends compile + import cleanly (12 tables, no dup mappings).
 
 ## Tenancy (already wired)
-- **Branch = DB.** Demo = the `DEMO` branch → `dem_prod`. Set `DEMO_DATABASE_URL` in `backend/.env`.
-- **School = school_id (bigint).** Demo has `dem_school_master` + `school_id` on
-  `dem_users_master`/`dem_class_master`. Most demo tables have **no** direct
+- **Branch = DB.** Demo = the `DEMO` branch → `vb_prod`. Set `DEMO_DATABASE_URL` in `backend/.env`.
+- **School = school_id (bigint).** Demo has `vb_school_master` + `school_id` on
+  `vb_users_master`/`vb_class_master`. Most demo tables have **no** direct
   school_id (scoped via `class_id`), so their models use plain `Base`, **not**
   `TenantModel`. The demo is one school — fine.
 - Token carries `{ user_id, branch: "DEMO", school_id, role }`.
@@ -31,22 +31,31 @@ dump the real schema:
 ```sql
 SELECT table_name, column_name, data_type, character_maximum_length, is_nullable
 FROM information_schema.columns
-WHERE table_schema='public' AND table_name LIKE 'dem_%'
+WHERE table_schema='public' AND table_name LIKE 'vb_%'
 ORDER BY table_name, ordinal_position;
 ```
 Match every column. Declaring a column the DB lacks (or wrong type) = 500s.
 
+> **Update, 29 Sep 2026 — the rename happened.** The database is now `vb_prod`
+> and every table carries the `vb_` prefix; `dem_prod` no longer exists. The
+> models were still pointing at `dem_*` long after the database moved, so the
+> backend failed on its first query with *"relation dem_student_master does not
+> exist"*. All 17 table names were corrected. The notes below are kept as the
+> original conversion plan — read `dem_` as `vb_` throughout.
+
 ## Gotchas found in the demo (don't copy blindly)
 - `/students/current` returns a **hardcoded** student — replace with a real query by token `user_id` (done in vidyarthi).
-- Code writes to `dem_assignment_submissions` which **doesn't exist**; the real
-  table is `dem_student_submission`. Use the real one.
-- `dem_` prefix kept (renaming `dem_prod` → `vb_` is an optional later migration).
-- IDs are numeric (bigint/integer) — but `dem_student_learning_profiles` uses
-  `integer` while `dem_student_master` uses `bigint`. Match each exactly.
+- Code writes to `vb_assignment_submissions` which **doesn't exist**; the real
+  table is `vb_student_submission`. Use the real one.
+- ~~`dem_` prefix kept (renaming `dem_prod` → `vb_` is an optional later migration).~~
+  Done — see the note above. The env var is still `DEMO_DATABASE_URL` because the
+  branch key is `DEMO`; only the database it points at changed.
+- IDs are numeric (bigint/integer) — but `vb_student_learning_profiles` uses
+  `integer` while `vb_student_master` uses `bigint`. Match each exactly.
 
 ## Backend port pattern (per module)
 1. **Models** → `backend/app/db/models/<role>.py`, `__tablename__` = the real
-   `dem_` table, types matching the schema, inherit `Base`.
+   `vb_` table, types matching the schema, inherit `Base`.
 2. **Router** → `backend/app/api/v1/<role>.py`:
    - `router = APIRouter(prefix="/<role>", tags=["<role>"])`
    - Guard every endpoint with `require_role("<Role>")` (from `core.security`)

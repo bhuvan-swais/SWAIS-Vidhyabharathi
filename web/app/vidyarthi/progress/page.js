@@ -1,5 +1,5 @@
 "use client";
-// Progress — exam marks (dem_student_marks) + past quiz scores (dem_quiz_response).
+// Progress — exam marks (vb_student_marks) + past quiz scores (vb_quiz_response).
 import { useEffect, useState } from "react";
 import { apiGet } from "../../../lib/api";
 

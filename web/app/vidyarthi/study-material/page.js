@@ -1,6 +1,6 @@
 "use client";
 // Study Material — reading material per chapter. Content comes from
-// dem_chapter_content; downloadable files from the repository (empty in demo,
+// vb_chapter_content; downloadable files from the repository (empty in demo,
 // so those render as "coming soon"). AI can read the text aloud (text-to-voice).
 import { useEffect, useState } from "react";
 import { apiGet } from "../../../lib/api";

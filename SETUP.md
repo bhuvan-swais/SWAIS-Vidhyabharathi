@@ -19,7 +19,7 @@ You (the dev) generate your **own** `SECRET_KEY` — you do NOT need the admin's
 - **Python 3.11+**, **Node 18+**, **git**.
 
 ## 2. Whitelist your IP (do this first — the #1 cause of "login not working")
-The backend connects to the shared demo DB (`dem_prod`) from **your** IP. If it's not whitelisted, every login call just **times out**.
+The backend connects to the shared demo DB (`vb_prod`) from **your** IP. If it's not whitelisted, every login call just **times out**.
 ```bash
 curl https://checkip.amazonaws.com
 ```
@@ -85,10 +85,10 @@ Set `OTP_DELIVERY_MODE=twilio` in `backend/.env` and fill `TWILIO_ACCOUNT_SID`, 
 - [ ] DM the **DB password** (+ Twilio creds if they need real SMS).
 - [ ] **Whitelist their IP** on the `swais-db-test-env` RDS security group (port 5432).
 - [ ] Add their **Gmail as a Test user** on the Google OAuth consent screen (for Google login).
-- [ ] **Seed their login row** — set their email/phone on a `dem_student_master` row (or the right role table):
+- [ ] **Seed their login row** — set their email/phone on a `vb_student_master` row (or the right role table):
   ```sql
-  UPDATE dem_student_master SET email_id = NULL  WHERE email_id  = 'dev@gmail.com';
-  UPDATE dem_student_master SET mobile_no = NULL WHERE mobile_no = '9XXXXXXXXX';
-  UPDATE dem_student_master SET email_id = 'dev@gmail.com', mobile_no = '9XXXXXXXXX'
+  UPDATE vb_student_master SET email_id = NULL  WHERE email_id  = 'dev@gmail.com';
+  UPDATE vb_student_master SET mobile_no = NULL WHERE mobile_no = '9XXXXXXXXX';
+  UPDATE vb_student_master SET email_id = 'dev@gmail.com', mobile_no = '9XXXXXXXXX'
   WHERE student_id = <spare id>;
   ```

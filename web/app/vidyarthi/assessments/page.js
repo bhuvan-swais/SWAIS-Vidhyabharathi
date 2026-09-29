@@ -1,6 +1,6 @@
 "use client";
-// Assessments — formal exam schedule (dem_exam_master) + my results
-// (dem_student_marks), with AI study advice for the weakest subject.
+// Assessments — formal exam schedule (vb_exam_master) + my results
+// (vb_student_marks), with AI study advice for the weakest subject.
 import { useEffect, useState } from "react";
 import { apiGet } from "../../../lib/api";
 import { generateContent } from "../../../lib/aiService";

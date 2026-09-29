@@ -1,6 +1,6 @@
 "use client";
 // Chapters — browse by subject, open a chapter to read its content (from
-// dem_chapter_content; empty in demo -> graceful empty state).
+// vb_chapter_content; empty in demo -> graceful empty state).
 import { useEffect, useState } from "react";
 import { apiGet } from "../../../lib/api";
 
