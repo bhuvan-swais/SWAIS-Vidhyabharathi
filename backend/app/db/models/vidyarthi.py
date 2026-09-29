@@ -1,7 +1,7 @@
 """Vidyarthi (student) models — SWAIS VidhyaBharathi.
 
-Mapped to the DEMO branch database (dem_prod). Column names + types match the
-LIVE dem_prod schema exactly (verified from information_schema) — this is what
+Mapped to the DEMO branch database (vb_prod). Column names + types match the
+LIVE vb_prod schema exactly (verified from information_schema) — this is what
 prevents the sss_faculty type-mismatch outage.
 
 NOTE: these demo tables have NO direct `school_id` column (the demo is one
@@ -19,7 +19,7 @@ from app.db.models.common import StudentMaster, SubjectMaster  # noqa: F401 (re-
 
 
 class ChapterContent(Base):
-    __tablename__ = "dem_chapter_content"
+    __tablename__ = "vb_chapter_content"
     chapter_content_id = Column(BigInteger, primary_key=True)
     chapter_id         = Column(BigInteger, nullable=True, index=True)
     content_title      = Column(String(300), nullable=True)
@@ -31,7 +31,7 @@ class ChapterContent(Base):
 
 
 class StudentLearningProfile(Base):
-    __tablename__ = "dem_student_learning_profiles"
+    __tablename__ = "vb_student_learning_profiles"
     id                   = Column(Integer, primary_key=True)   # NOTE: integer here, not bigint
     student_id           = Column(Integer, nullable=False, index=True)
     chapter_id           = Column(Integer, nullable=False)
@@ -47,7 +47,7 @@ class StudentLearningProfile(Base):
 
 
 class AssignmentMaster(Base):
-    __tablename__ = "dem_assignment_master"
+    __tablename__ = "vb_assignment_master"
     assignment_id    = Column(BigInteger, primary_key=True)
     chapter_id       = Column(BigInteger, nullable=True)
     assignment_title = Column(String, nullable=True)
@@ -58,7 +58,7 @@ class AssignmentMaster(Base):
 
 
 class StudentSubmission(Base):
-    __tablename__ = "dem_student_submission"
+    __tablename__ = "vb_student_submission"
     submission_id   = Column(BigInteger, primary_key=True)
     assignment_id   = Column(BigInteger, nullable=True, index=True)
     student_id      = Column(BigInteger, nullable=True, index=True)
@@ -71,7 +71,7 @@ class StudentSubmission(Base):
 
 
 class AssessmentResult(Base):
-    __tablename__ = "dem_assessment_results"
+    __tablename__ = "vb_assessment_results"
     result_id      = Column(BigInteger, primary_key=True)
     assessment_id  = Column(BigInteger, nullable=True, index=True)
     student_id     = Column(BigInteger, nullable=True, index=True)
@@ -84,7 +84,7 @@ class AssessmentResult(Base):
 
 
 class ChapterMaster(Base):
-    __tablename__ = "dem_chapter_master"
+    __tablename__ = "vb_chapter_master"
     chapter_id          = Column(BigInteger, primary_key=True)
     subject_id          = Column(BigInteger, nullable=True, index=True)
     chapter_no          = Column(Integer, nullable=True)
@@ -95,7 +95,7 @@ class ChapterMaster(Base):
 
 
 class QuizMaster(Base):
-    __tablename__ = "dem_quiz_master"
+    __tablename__ = "vb_quiz_master"
     quiz_id          = Column(BigInteger, primary_key=True)
     chapter_id       = Column(BigInteger, nullable=True, index=True)
     quiz_title       = Column(String, nullable=True)
@@ -105,7 +105,7 @@ class QuizMaster(Base):
 
 
 class QuizResponse(Base):
-    __tablename__ = "dem_quiz_response"
+    __tablename__ = "vb_quiz_response"
     response_id      = Column(BigInteger, primary_key=True)
     quiz_id          = Column(BigInteger, nullable=True, index=True)
     student_id       = Column(BigInteger, nullable=True, index=True)
@@ -116,7 +116,7 @@ class QuizResponse(Base):
 
 
 class StudentMarks(Base):
-    __tablename__ = "dem_student_marks"
+    __tablename__ = "vb_student_marks"
     marks_id       = Column(BigInteger, primary_key=True)
     student_id     = Column(BigInteger, nullable=True, index=True)
     exam_id        = Column(BigInteger, nullable=True, index=True)
@@ -129,7 +129,7 @@ class StudentMarks(Base):
 
 
 class ExamMaster(Base):
-    __tablename__ = "dem_exam_master"
+    __tablename__ = "vb_exam_master"
     exam_id       = Column(BigInteger, primary_key=True)
     exam_name     = Column(String, nullable=True)
     academic_year = Column(String, nullable=True)

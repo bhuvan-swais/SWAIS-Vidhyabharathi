@@ -1,8 +1,8 @@
-"""Shared org/user models — SWAIS VidhyaBharathi (DEMO branch → dem_prod).
+"""Shared org/user models — SWAIS VidhyaBharathi (DEMO branch → vb_prod).
 
 Tables used by MORE THAN ONE module (admin, pradhana, vidyarthi) live here so a
 table is mapped exactly ONCE (SQLAlchemy errors on duplicate __tablename__).
-Types match the live dem_prod schema. Plain Base (demo tables lack a direct
+Types match the live vb_prod schema. Plain Base (demo tables lack a direct
 school_id except where noted).
 """
 from sqlalchemy import Column, BigInteger, Integer, String, Boolean, Text, DateTime
@@ -11,7 +11,7 @@ from app.db.session import Base
 
 
 class UserMaster(Base):
-    __tablename__ = "dem_users_master"
+    __tablename__ = "vb_users_master"
     user_id       = Column(BigInteger, primary_key=True)
     login_id      = Column(String(100), nullable=True)
     password_hash = Column(Text, nullable=True)
@@ -26,7 +26,7 @@ class UserMaster(Base):
 
 
 class StudentMaster(Base):
-    __tablename__ = "dem_student_master"
+    __tablename__ = "vb_student_master"
     student_id     = Column(BigInteger, primary_key=True)
     admission_no   = Column(String, nullable=True)
     full_name      = Column(String, nullable=True)
@@ -46,7 +46,7 @@ class StudentMaster(Base):
 
 
 class TeacherMaster(Base):
-    __tablename__ = "dem_teacher_master"
+    __tablename__ = "vb_teacher_master"
     teacher_id   = Column(BigInteger, primary_key=True)
     full_name    = Column(String, nullable=True)
     email_id     = Column(String, nullable=True, index=True)
@@ -60,7 +60,7 @@ class TeacherMaster(Base):
 
 
 class SchoolMaster(Base):
-    __tablename__ = "dem_school_master"
+    __tablename__ = "vb_school_master"
     school_id      = Column(BigInteger, primary_key=True)
     school_name    = Column(String(200), nullable=False)
     city           = Column(String(100), nullable=True)
@@ -72,7 +72,7 @@ class SchoolMaster(Base):
 
 
 class ClassMaster(Base):
-    __tablename__ = "dem_class_master"
+    __tablename__ = "vb_class_master"
     class_id         = Column(BigInteger, primary_key=True)
     school_id        = Column(BigInteger, nullable=True, index=True)  # HAS school_id
     class_name       = Column(String, nullable=True)
@@ -83,7 +83,7 @@ class ClassMaster(Base):
 
 
 class SubjectMaster(Base):
-    __tablename__ = "dem_subject_master"
+    __tablename__ = "vb_subject_master"
     subject_id    = Column(BigInteger, primary_key=True)
     class_id      = Column(BigInteger, nullable=True, index=True)
     subject_name  = Column(String, nullable=True)
@@ -93,7 +93,7 @@ class SubjectMaster(Base):
 
 
 class NoticeBoard(Base):
-    __tablename__ = "dem_notice_board"
+    __tablename__ = "vb_notice_board"
     notice_id        = Column(BigInteger, primary_key=True)
     notice_title     = Column(String(200), nullable=True)
     notice_text      = Column(Text, nullable=True)

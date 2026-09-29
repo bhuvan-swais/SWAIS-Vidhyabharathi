@@ -5,7 +5,7 @@ Two methods, mirroring the SSS login:
   - Email  (+ optional Google Sign-In verified server-side)
   - Phone  (OTP: hashed, expiring, attempt-limited)
 
-Identity is checked against the branch DB (demo -> dem_prod). The demo shortcut
+Identity is checked against the branch DB (demo -> vb_prod). The demo shortcut
 POST /login {role:"Vidyarthi"} with no email still resolves the first student so
 the dashboards keep working without a full login.
 """
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/pravesha", tags=["pravesha"])
 
 DEMO_BRANCH = "DEMO"
 
-# role -> which table + columns to authenticate against (demo dem_ schema).
+# role -> which table + columns to authenticate against (vb_ schema).
 ROLE_MAP = {
     "Vidyarthi":        {"model": StudentMaster, "email": "email_id",    "phone": "mobile_no",    "id": "student_id"},
     "Acharya":          {"model": TeacherMaster, "email": "email_id",    "phone": "phone",        "id": "teacher_id"},

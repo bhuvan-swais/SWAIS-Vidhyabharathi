@@ -1,14 +1,14 @@
 """Vidyarthi (student) module — SWAIS VidhyaBharathi.
 
 Ported from the Demo Student-Dashboard (raw psycopg) to SQLAlchemy on the shared
-BVK backend: uses the branch DB (DEMO -> dem_prod), the shared auth (role gate),
-and the models in db/models/vidyarthi.py (typed to the live dem_prod schema).
+BVK backend: uses the branch DB (DEMO -> vb_prod), the shared auth (role gate),
+and the models in db/models/vidyarthi.py (typed to the live vb_prod schema).
 
 Fixes carried over from the demo:
 - /students/current no longer returns a hardcoded student — it reads the row for
   the logged-in student (token user_id).
-- submissions use the REAL table dem_student_submission (the demo wrote to
-  dem_assignment_submissions, which does not exist in dem_prod).
+- submissions use the REAL table vb_student_submission (the demo wrote to
+  vb_assignment_submissions, which does not exist in vb_prod).
 """
 from datetime import datetime
 
