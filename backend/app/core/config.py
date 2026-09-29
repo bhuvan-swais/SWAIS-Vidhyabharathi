@@ -35,7 +35,11 @@ GOOGLE_CLIENT_IDS = [
 # console = OTP returned in the API response (dev/testing, no SMS gateway yet).
 # sms     = send via the configured gateway (DLT-registered Indian gateway — NOT Twilio).
 OTP_DELIVERY_MODE = os.getenv("OTP_DELIVERY_MODE", "console").strip().lower()
-OTP_EXPIRY_MINUTES = int(os.getenv("OTP_EXPIRY_MINUTES", "5"))
+# Ten minutes, because that is what the DLT-registered SMS template tells the
+# user ("It is valid for 10 minutes"). The template wording cannot be changed
+# without re-registering it, so this value follows the template, not the other
+# way round. Change both together or the message becomes a lie.
+OTP_EXPIRY_MINUTES = int(os.getenv("OTP_EXPIRY_MINUTES", "10"))
 OTP_MAX_ATTEMPTS = int(os.getenv("OTP_MAX_ATTEMPTS", "5"))
 
 # Twilio SMS (used when OTP_DELIVERY_MODE=twilio) — same vars as SSS.
