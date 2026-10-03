@@ -10,28 +10,52 @@ import boto3
 from botocore.config import Config
 
 from app.core.config import (
-    AWS_REGION, AWS_S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
+    AWS_REGION, AWS_S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN,
 )
 
 _PRESIGN_EXPIRY = 900  # 15 minutes
 
 
 def _client():
-    # Regional endpoint matters for opt-in regions (e.g. ap-south-2), or presigned
-    # URLs point at the global host and S3 rejects them.
-    return boto3.client(
-        "s3",
+    # Regional endpoint matters for opt-in regions (e.g. ap-south-2); without it
+    # presigned URLs point at the global host and S3 rejects them.
+    #
+    # When explicit credentials are not configured, boto3 uses its default credential
+    # provider chain (env vars → ~/.aws → EC2 IAM instance role). This lets the same
+    # code work locally (explicit .env creds) and on EC2 (IAM role, auto-refreshed).
+    kwargs = dict(
         region_name=AWS_REGION,
         endpoint_url=f"https://s3.{AWS_REGION}.amazonaws.com" if AWS_REGION else None,
-        aws_access_key_id=AWS_ACCESS_KEY_ID or None,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY or None,
         config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
     )
+    if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY:
+        # Temporary STS keys (ASIA…) must include the session token; without it
+        # the signed request is rejected by S3 with 403.
+        kwargs.update(
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            aws_session_token=AWS_SESSION_TOKEN or None,
+        )
+    return boto3.client("s3", **kwargs)
 
 
 def s3_configured() -> bool:
-    """True only when all four AWS vars are present. Gate every S3 call on this."""
-    return bool(AWS_S3_BUCKET and AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_REGION)
+    """True when S3 can be used.
+
+    Bucket and region are always required. For explicit credentials:
+    - both key + secret must be present
+    - temporary STS keys (ASIA…) also require a session token
+    When no explicit credentials are set, the EC2 IAM instance role is assumed.
+    """
+    if not (AWS_S3_BUCKET and AWS_REGION):
+        return False
+    if AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY:
+        if not (AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY):
+            return False
+        if AWS_ACCESS_KEY_ID.startswith("ASIA") and not AWS_SESSION_TOKEN:
+            return False
+    # No explicit credentials — boto3 will use the EC2 IAM instance role.
+    return True
 
 
 def build_key(branch: str, school_id: str, *parts: str) -> str:

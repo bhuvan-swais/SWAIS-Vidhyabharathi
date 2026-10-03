@@ -67,15 +67,9 @@ export default function BookReader({ params }) {
           <div style={{ padding: 48, textAlign: "center" }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
             <h2 style={{ marginBottom: 8 }}>{book.title}</h2>
-            <p style={{ color: "var(--gl-muted)", maxWidth: 480, margin: "0 auto 16px" }}>
-              PDF reading requires S3 credentials. The AWS bucket and credentials will be
-              configured tomorrow. Come back once they are set up.
+            <p style={{ color: "var(--gl-muted)", maxWidth: 480, margin: "0 auto" }}>
+              No PDF has been uploaded for this book yet. Contact your library administrator to add the PDF.
             </p>
-            <div className="gl-alert-info" style={{ display: "inline-block", textAlign: "left" }}>
-              <strong>Pending:</strong> Set <code>AWS_REGION</code>, <code>AWS_S3_BUCKET</code>,
-              <code>AWS_ACCESS_KEY_ID</code>, <code>AWS_SECRET_ACCESS_KEY</code> in{" "}
-              <code>backend/.env</code> and upload a PDF via the Admin → Books panel.
-            </div>
           </div>
         ) : pdfUrl ? (
           <iframe

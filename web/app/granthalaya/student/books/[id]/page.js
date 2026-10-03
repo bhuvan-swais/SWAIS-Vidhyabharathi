@@ -15,6 +15,7 @@ export default function BookDetail({ params }) {
   const { id } = params;
   const [book, setBook]         = useState(null);
   const [categories, setCategories] = useState([]);
+  const [coverUrl, setCoverUrl] = useState(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
   const [downloading, setDownloading] = useState(false);
@@ -28,7 +29,15 @@ export default function BookDetail({ params }) {
           glBooks.get("Student", id),
           glCategories.list("Student"),
         ]);
-        if (!cancelled) { setBook(bk); setCategories(cats); }
+        if (!cancelled) {
+          setBook(bk);
+          setCategories(cats);
+          if (bk.cover_key) {
+            glBooks.cover("Student", bk.book_id)
+              .then(({ url }) => { if (!cancelled) setCoverUrl(url); })
+              .catch(() => {/* cover just won't show */});
+          }
+        }
       } catch (e) {
         if (!cancelled) setError(e.message);
       } finally {
@@ -69,12 +78,20 @@ export default function BookDetail({ params }) {
 
       <div className="gl-detail-layout">
         <div>
-          <div
-            className="gl-book-cover"
-            style={{ background: color, height: 320, borderRadius: 12, fontSize: 64, display: "flex", alignItems: "center", justifyContent: "center" }}
-          >
-            📖
-          </div>
+          {coverUrl ? (
+            <img
+              src={coverUrl}
+              alt={book.title}
+              style={{ width: "100%", aspectRatio: "3/4", objectFit: "cover", objectPosition: "center", borderRadius: 12, display: "block" }}
+            />
+          ) : (
+            <div
+              className="gl-book-cover"
+              style={{ background: color, aspectRatio: "3/4", borderRadius: 12, fontSize: 20, fontWeight: 700, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 20px", textAlign: "center", lineHeight: 1.3 }}
+            >
+              {book.title}
+            </div>
+          )}
           <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
             <Link href={`/granthalaya/student/reader/${book.book_id}`} className="gl-btn gl-btn-primary" style={{ textAlign: "center" }}>
               Read Book

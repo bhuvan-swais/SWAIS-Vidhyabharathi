@@ -66,5 +66,6 @@ AWS_REGION = (os.getenv("AWS_REGION") or os.getenv("AWS_BUCKET_REGION", "")).str
 AWS_S3_BUCKET = (os.getenv("AWS_S3_BUCKET") or os.getenv("AWS_BUCKET_NAME", "")).strip()
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "").strip()
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "").strip()
+AWS_SESSION_TOKEN = os.getenv("AWS_SESSION_TOKEN", "").strip()
 
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000").strip()

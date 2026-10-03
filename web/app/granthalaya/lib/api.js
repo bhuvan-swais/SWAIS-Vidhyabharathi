@@ -80,7 +80,12 @@ async function glFetch(uiRole, path, options = {}) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
-    throw new Error(err.detail || `HTTP ${res.status}`);
+    const detail = err.detail;
+    throw new Error(
+      Array.isArray(detail)
+        ? detail.map((d) => d.msg || JSON.stringify(d)).join("; ")
+        : (detail || `HTTP ${res.status}`)
+    );
   }
 
   const text = await res.text();
@@ -101,8 +106,13 @@ export const glBooks = {
   create:   (uiRole, body)     => glFetch(uiRole, "/books", { method: "POST", body: JSON.stringify(body) }),
   update:   (uiRole, id, body) => glFetch(uiRole, `/books/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   deactivate: (uiRole, id)     => glFetch(uiRole, `/books/${id}`, { method: "DELETE" }),
-  /** S3 upload — returns { key, file_type }. Throws 503 until credentials are configured. */
-  upload:   (uiRole, formData) => glFetch(uiRole, "/books/upload", { method: "POST", body: formData }),
+  /** S3 upload — returns { key, file_type }. Pass fileType="pdf"|"cover" and the real bookId. */
+  upload: (uiRole, formData, fileType = "pdf", bookId = null) => {
+    const qs = new URLSearchParams({ file_type: fileType, ...(bookId != null ? { book_id: String(bookId) } : {}) }).toString();
+    return glFetch(uiRole, `/books/upload?${qs}`, { method: "POST", body: formData });
+  },
+  /** Presigned cover-image URL — returns { url }. */
+  cover: (uiRole, id) => glFetch(uiRole, `/books/${id}/cover`),
 };
 
 // ------------------------------------------------------------------ categories

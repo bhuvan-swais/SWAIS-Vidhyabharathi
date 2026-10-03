@@ -1,7 +1,9 @@
 "use client";
 /* BookCard — reused by student library, teacher browse, and admin book list. */
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { glBooks } from "../lib/api";
 import StatusBadge from "./StatusBadge";
 
 const COVER_COLORS = [
@@ -13,13 +15,35 @@ function coverColor(bookId) {
   return COVER_COLORS[(bookId - 1) % COVER_COLORS.length];
 }
 
+const ROLE_MAP = { student: "Student", teacher: "Teacher", admin: "Admin" };
+
 export default function BookCard({ book, role = "student", onAction }) {
   const color = coverColor(book.book_id);
+  const [coverUrl, setCoverUrl] = useState(null);
+
+  useEffect(() => {
+    if (!book.cover_key) return;
+    const uiRole = ROLE_MAP[role] || "Student";
+    let cancelled = false;
+    glBooks.cover(uiRole, book.book_id)
+      .then(({ url }) => { if (!cancelled) setCoverUrl(url); })
+      .catch(() => { /* fall back to placeholder silently */ });
+    return () => { cancelled = true; };
+  }, [book.book_id, book.cover_key, role]);
 
   return (
     <div className="gl-book-card">
-      <div className="gl-book-cover" style={{ background: color }}>
-        <span className="gl-book-cover-icon">📖</span>
+      <div className="gl-book-cover" style={coverUrl ? {} : { background: color }}>
+        {coverUrl ? (
+          <img
+            src={coverUrl}
+            alt=""
+            onError={() => setCoverUrl(null)}
+            style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" }}
+          />
+        ) : (
+          <span className="gl-book-cover-icon">📖</span>
+        )}
       </div>
 
       <div className="gl-book-body">

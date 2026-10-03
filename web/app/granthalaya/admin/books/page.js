@@ -20,6 +20,9 @@ function BookFormModal({ book, categories, onSave, onClose }) {
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState(null);
+  const [pdfFile, setPdfFile]     = useState(null);
+  const [coverFile, setCoverFile] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState("");
   const isEdit = !!book;
 
   function set(key, val) { setForm((f) => ({ ...f, [key]: val })); }
@@ -38,18 +41,60 @@ function BookFormModal({ book, categories, onSave, onClose }) {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setSaving(true);
     setApiError(null);
+    setUploadStatus("");
     try {
       const payload = {
         ...form,
         category_id: form.category_id ? Number(form.category_id) : null,
         keywords: form.keywords || "",
       };
-      const saved = isEdit
+
+      let saved = isEdit
         ? await glBooks.update("Admin", book.book_id, payload)
         : await glBooks.create("Admin", payload);
-      onSave(saved, isEdit);
+
+      const bookId = saved.book_id;
+      const keys = {};
+      const warns = [];
+
+      if (pdfFile) {
+        setUploadStatus("Uploading PDF…");
+        const fd = new FormData();
+        fd.append("file", pdfFile);
+        try {
+          const { key } = await glBooks.upload("Admin", fd, "pdf", bookId);
+          keys.pdf_key = key;
+        } catch (uploadErr) {
+          warns.push(`PDF upload failed: ${uploadErr.message}`);
+        }
+      }
+
+      if (coverFile) {
+        setUploadStatus("Uploading cover…");
+        const fd = new FormData();
+        fd.append("file", coverFile);
+        try {
+          const { key } = await glBooks.upload("Admin", fd, "cover", bookId);
+          keys.cover_key = key;
+        } catch (uploadErr) {
+          warns.push(`Cover upload failed: ${uploadErr.message}`);
+        }
+      }
+
+      if (Object.keys(keys).length > 0) {
+        setUploadStatus("Saving…");
+        saved = await glBooks.update("Admin", bookId, {
+          ...saved,
+          ...keys,
+          keywords: Array.isArray(saved.keywords) ? saved.keywords.join(", ") : (saved.keywords || ""),
+        });
+      }
+
+      setUploadStatus("");
+      onSave(saved, isEdit, warns.length ? warns.join(" ") : null);
     } catch (err) {
       setApiError(err.message);
+      setUploadStatus("");
     } finally {
       setSaving(false);
     }
@@ -128,13 +173,41 @@ function BookFormModal({ book, categories, onSave, onClose }) {
                 </label>
               </div>
             </div>
-            <div className="gl-alert-info" style={{ fontSize: 13 }}>
-              PDF / cover upload will be available once S3 access is configured.
+            <div className="gl-form-row">
+              <div className="gl-form-group">
+                <label className="gl-label">PDF File (.pdf)</label>
+                <input
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="gl-input"
+                  style={{ padding: "6px 8px" }}
+                  onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                />
+                {isEdit && book?.pdf_key && !pdfFile && (
+                  <div style={{ fontSize: 12, color: "var(--gl-muted)", marginTop: 4 }}>Current PDF on file. Select a new file to replace it.</div>
+                )}
+              </div>
+              <div className="gl-form-group">
+                <label className="gl-label">Cover Image (.jpg/.png/.webp)</label>
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                  className="gl-input"
+                  style={{ padding: "6px 8px" }}
+                  onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
+                />
+                {isEdit && book?.cover_key && !coverFile && (
+                  <div style={{ fontSize: 12, color: "var(--gl-muted)", marginTop: 4 }}>Current cover on file. Select a new file to replace it.</div>
+                )}
+              </div>
             </div>
+            {uploadStatus && (
+              <div style={{ fontSize: 13, color: "var(--gl-muted)", marginBottom: 8 }}>{uploadStatus}</div>
+            )}
             <div className="gl-modal-actions">
               <button type="button" className="gl-btn gl-btn-ghost" onClick={onClose}>Cancel</button>
               <button type="submit" className="gl-btn gl-btn-primary" disabled={saving}>
-                {saving ? "Saving…" : isEdit ? "Save Changes" : "Add Book"}
+                {saving ? (uploadStatus || "Saving…") : isEdit ? "Save Changes" : "Add Book"}
               </button>
             </div>
           </form>
@@ -192,7 +265,7 @@ export default function AdminBooks() {
     });
   }, [books, query, filters]);
 
-  function handleSave(saved, isEdit) {
+  function handleSave(saved, isEdit, warn = null) {
     setBooks((bs) => {
       if (isEdit) {
         const idx = bs.findIndex((b) => b.book_id === saved.book_id);
@@ -201,7 +274,11 @@ export default function AdminBooks() {
       return [saved, ...bs];
     });
     setModal(null);
-    showToast(isEdit ? "Book updated." : "Book added.");
+    if (warn) {
+      showToast(`${isEdit ? "Book updated." : "Book added."} Note: ${warn}`, "info");
+    } else {
+      showToast(isEdit ? "Book updated." : "Book added.");
+    }
   }
 
   async function handleDelete() {

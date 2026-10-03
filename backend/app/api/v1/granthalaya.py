@@ -110,13 +110,10 @@ def _log_activity(session, school_id, book_id, user_id, action):
     ))
 
 
-def _notify(session, school_id, user_id, ntype, message):
-    # NOTE: role-based notification isolation is pending DB migration.
-    # The proper fix requires ALTER TABLE vb_notification ADD COLUMN user_role VARCHAR(50).
-    # Until then, notifications are filtered by user_id only (namespace collision risk
-    # if teacher_id and student_id share the same integer across their respective tables).
+def _notify(session, school_id, user_id, user_role, ntype, message):
     session.add(Notification(
-        school_id=school_id, user_id=user_id, type=ntype, message=message,
+        school_id=school_id, user_id=user_id, user_role=user_role,
+        type=ntype, message=message,
     ))
 
 
@@ -183,7 +180,7 @@ def read_book(book_id: int, scope=Depends(get_scoped_db), user: dict = Depends(g
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No PDF available for this book")
     if not s3_service.s3_configured():
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
-                            "S3 not configured — PDF reading requires AWS credentials (pending tomorrow)")
+                            "S3 is not configured. PDF reading requires S3 access.")
     _log_activity(session, book.school_id, book.book_id, user["user_id"], "read")
     session.commit()
     return {"url": s3_service.presign_get(book.pdf_key)}
@@ -199,11 +196,23 @@ def download_book(book_id: int, scope=Depends(get_scoped_db), user: dict = Depen
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Download not permitted for this book")
     if not s3_service.s3_configured():
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
-                            "S3 not configured — PDF download requires AWS credentials (pending tomorrow)")
+                            "S3 is not configured. PDF download requires S3 access.")
     book.download_count = (book.download_count or 0) + 1
     _log_activity(session, book.school_id, book.book_id, user["user_id"], "download")
     session.commit()
     return {"url": s3_service.presign_get(book.pdf_key)}
+
+
+@router.get("/books/{book_id}/cover")
+def cover_image(book_id: int, scope=Depends(get_scoped_db), user: dict = Depends(get_current_user)):
+    session, school_id = scope
+    book = _get_book_or_404(session, school_id, book_id)
+    if not book.cover_key:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No cover image for this book")
+    if not s3_service.s3_configured():
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
+                            "S3 is not configured. Cover image requires S3 access.")
+    return {"url": s3_service.presign_get(book.cover_key)}
 
 
 # ------------------------------------------------------------------ categories (all: read; admin: write)
@@ -401,7 +410,7 @@ def review_request(request_id: int, decision: str, scope=Depends(get_scoped_db),
     req.status = "approved" if decision == "approve" else "rejected"
     req.reviewed_by = user["user_id"]
     req.reviewed_at = datetime.utcnow()
-    _notify(session, school_id, req.requested_by,
+    _notify(session, school_id, req.requested_by, "Acharya",
             f"request_{req.status}",
             f"Your book request '{req.title}' was {req.status}.")
     session.commit()
@@ -437,7 +446,7 @@ def resolve_report(report_id: int, scope=Depends(get_scoped_db),
     rep.resolved_by = user["user_id"]
     rep.resolved_at = datetime.utcnow()
     book = session.query(Book).filter(Book.book_id == rep.book_id).first()
-    _notify(session, school_id, rep.reported_by,
+    _notify(session, school_id, rep.reported_by, "Acharya",
             "report_resolved",
             "Your content report has been reviewed and resolved.")
     session.commit()
@@ -481,7 +490,8 @@ def stats(scope=Depends(get_scoped_db), user: dict = Depends(require_role(*ADMIN
 def notifications(scope=Depends(get_scoped_db), user: dict = Depends(get_current_user)):
     session, school_id = scope
     notifs = (scope_query(session.query(Notification), Notification, school_id)
-              .filter(Notification.user_id == user["user_id"])
+              .filter(Notification.user_id == user["user_id"],
+                      Notification.user_role == user["role"])
               .order_by(Notification.created_at.desc()).all())
     return [_notification_dict(n) for n in notifs]
 
@@ -492,7 +502,8 @@ def mark_notification_read(notification_id: int, scope=Depends(get_scoped_db),
     session, school_id = scope
     notif = (scope_query(session.query(Notification), Notification, school_id)
              .filter(Notification.notification_id == notification_id,
-                     Notification.user_id == user["user_id"]).first())
+                     Notification.user_id == user["user_id"],
+                     Notification.user_role == user["role"]).first())
     if not notif:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Notification not found")
     notif.is_read = True
@@ -505,6 +516,7 @@ def mark_all_notifications_read(scope=Depends(get_scoped_db), user: dict = Depen
     session, school_id = scope
     (scope_query(session.query(Notification), Notification, school_id)
      .filter(Notification.user_id == user["user_id"],
+             Notification.user_role == user["role"],
              Notification.is_read == False)  # noqa: E712
      .update({"is_read": True}, synchronize_session=False))
     session.commit()
