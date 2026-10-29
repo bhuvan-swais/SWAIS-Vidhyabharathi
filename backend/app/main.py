@@ -1,10 +1,7 @@
-"""SWAIS VidhyaBharathi — API entry point.
-
-Single backend serving all role modules under /api/v1. Multi-tenant:
-one database per branch (BVK1, BVK2, ...), schools separated by school_id.
-"""
+"""SWAIS VidhyaBharathi — API entry point."""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from saraswati_tenant import SchoolMiddleware
 
 from app.core.config import FRONTEND_ORIGIN
 from app.api.v1.router import api_router
@@ -18,6 +15,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ✅ Add the Tenant Middleware
+app.add_middleware(SchoolMiddleware)
 
 app.include_router(api_router, prefix="/api/v1")
 
