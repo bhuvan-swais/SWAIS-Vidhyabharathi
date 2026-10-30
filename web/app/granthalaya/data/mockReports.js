@@ -1,0 +1,88 @@
+/* Mock content reports data. Replace with /api/v1/granthalaya/reports in integration phase. */
+
+export const MOCK_REPORTS = [
+  {
+    report_id: 1,
+    book_id: 7,
+    book_title: "Environmental Science",
+    reported_by: 102,
+    reporter_name: "Rakesh Verma",
+    reason_category: "Outdated Information",
+    reason:
+      "Chapter 6 on climate change references 2005 IPCC data which is now significantly outdated. Several statistics cited are no longer accurate and may mislead students preparing for examinations using current data.",
+    status: "resolved",
+    resolved_by: 1,
+    resolved_at: "2026-07-25T14:00:00",
+    created_at: "2026-07-20T10:00:00",
+  },
+  {
+    report_id: 2,
+    book_id: 4,
+    book_title: "Physics: Concepts and Applications",
+    reported_by: 105,
+    reporter_name: "Anita Rao",
+    reason_category: "Incorrect Content",
+    reason:
+      "There appears to be an error in the derivation of the lens maker's equation on page 312. The sign convention used is inconsistent with the NCERT curriculum, which may confuse students during board exams.",
+    status: "open",
+    resolved_by: null,
+    resolved_at: null,
+    created_at: "2026-08-02T11:30:00",
+  },
+  {
+    report_id: 3,
+    book_id: 10,
+    book_title: "Ramayana: A Modern Retelling",
+    reported_by: 103,
+    reporter_name: "Meena Iyer",
+    reason_category: "Age Appropriateness",
+    reason:
+      "Some of the battle scenes in Part 4 contain graphic depictions of violence that may not be appropriate for Class 7 students. While the literary merit is high, I recommend restricting access to Class 9 and above.",
+    status: "open",
+    resolved_by: null,
+    resolved_at: null,
+    created_at: "2026-08-08T09:00:00",
+  },
+  {
+    report_id: 4,
+    book_id: 16,
+    book_title: "Bharat Ka Itihas",
+    reported_by: 107,
+    reporter_name: "Kavitha Suresh",
+    reason_category: "Factual Error",
+    reason:
+      "The date given for the Battle of Panipat (Second) on page 178 appears to be a printing error — it reads 1546 but should be 1556. Students relying on this for examination preparation will be penalised.",
+    status: "resolved",
+    resolved_by: 1,
+    resolved_at: "2026-08-10T16:00:00",
+    created_at: "2026-08-05T13:00:00",
+  },
+  {
+    report_id: 5,
+    book_id: 15,
+    book_title: "Digital Literacy for Students",
+    reported_by: 104,
+    reporter_name: "Sanjay Gupta",
+    reason_category: "Outdated Information",
+    reason:
+      "The chapter on social media platforms references apps that are banned in India (Chapter 9). The content needs to be updated to reflect current regulations and the relevant platforms available to Indian students.",
+    status: "open",
+    resolved_by: null,
+    resolved_at: null,
+    created_at: "2026-08-12T10:45:00",
+  },
+  {
+    report_id: 6,
+    book_id: 3,
+    book_title: "Gitanjali",
+    reported_by: 106,
+    reporter_name: "Deepak Nair",
+    reason_category: "Translation Issue",
+    reason:
+      "The English translation used in this edition differs significantly from the standard Tagore translation taught in board examinations. Students may memorise the wrong version, leading to marks deductions.",
+    status: "open",
+    resolved_by: null,
+    resolved_at: null,
+    created_at: "2026-08-15T08:30:00",
+  },
+];

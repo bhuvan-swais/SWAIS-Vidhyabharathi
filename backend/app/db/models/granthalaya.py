@@ -70,6 +70,7 @@ class ContentReport(TenantModel):
     report_id = Column(BigInteger, primary_key=True, autoincrement=True)
     book_id = Column(BigInteger, ForeignKey("vb_book.book_id"), nullable=False, index=True)
     reported_by = Column(BigInteger, nullable=False)               # acharya user_id
+    reason_category = Column(String(100), nullable=True)           # e.g. "Factual Error", "Outdated Information"
     reason = Column(Text, nullable=False)
     status = Column(String(20), default="open")                    # open/resolved
     resolved_by = Column(BigInteger, nullable=True)
@@ -90,7 +91,8 @@ class ReadingActivity(TenantModel):
 class Notification(TenantModel):
     __tablename__ = "vb_notification"
     notification_id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, nullable=False, index=True)
+    user_id   = Column(BigInteger, nullable=False, index=True)
+    user_role = Column(String(50), nullable=True, index=True)      # Vidyarthi / Acharya / School Admin
     type = Column(String(50), nullable=True)                       # request_approved, report_resolved, ...
     message = Column(Text, nullable=False)
     is_read = Column(Boolean, default=False)
